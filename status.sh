@@ -22,14 +22,14 @@ notify_local_hih="$($config --section notify --key local_0)"
 if [ "$?" -ne "0" ] || [ -z "$notify_local_hih" ]; then
     notify_local_hih="notify-send -u critical "
 fi
-notify_remote_low="$($config --section notify --key remote_2)"
-if [ "$?" -ne "0" ] || [ -z "$notify_remote_low" ]; then
-    notify_remote_low="cat "
-    notify-send -u hih Backup "Kann nicht bestimmen, wohin der Status gemeldet werden soll"
+logcmd="$($config --section notify --key log)"
+if [ "$?" -ne "0" ] || [ -z "$logcmd" ]; then
+    logcmd="cat "
+    notify-send -u critical Backup "Kann nicht bestimmen, wohin der Status gemeldet werden soll"
 fi
-notify_remote_hih="$($config --section notify --key remote_0)"
-if [ "$?" -ne "0" ] || [ -z "$notify_remote_hih" ]; then
-    notify_remote_hih="$notify_remote_low"
+logcmd="$($config --section notify --key log)"
+if [ "$?" -ne "0" ] || [ -z "$logcmd" ]; then
+    notify_remote_hih="$logcmd"
 fi
 date="$(date +%Y-%m-%dT%H:%M:%S)"
 
@@ -37,11 +37,11 @@ case $status in
     START)
         $notify_local_low "Starte Backup" \
             "$date\n$message";
-        echo "$date STRT $message" | $notify_remote_low
+        echo "$date START $message" | $logcmd
         ;;
     SUCCESS)
-        $notify_local_med "Backup: Erfolg" "$message";
-        echo "$date SUCC $message" | $notify_remote_low
+        $notify_local_low "Backup: Erfolg" "$message";
+        echo "$date SUCC $message" | $logcmd
         echo $message;;
     FATAL)
         # FATAL sind alle Fehler, die auf Programmierfehler oder
@@ -49,22 +49,22 @@ case $status in
         $notify_local_hih \
             "Backup-Fehler (FATAL)" \
             "Konnte nicht anfangen, das Backup zu machen:\n$message";
-        echo "$date WTF! $message" | $notify_remote_hih
+        echo "$date WTF! $message" | $logcmd
         ;;
     FAIL)
         # FAIL sind Fehler beim Backup selbst.
         $notify_local_hih "Backup: Fehler $date" "$message";
-        echo "$date FAIL $message" | $notify_remote_hih
+        echo "$date FAIL $message" | $logcmd
         echo $message >&2;;
     SUCCESS_MESSAGE)
-        $notify_local_med "Backup: Erfolg" "$message\n$(< $config_dir/rsync.err)";
-        echo "$date SUC* $message" | $notify_remote_low
+        $notify_local_low "Backup: Erfolg" "$message\n$(< $config_dir/rsync.err)";
+        echo "$date SUC* $message" | $logcmd
         echo $message;;
     *)
         $notify_local_hih "Backup: Unbekannter Status $status" \
         "Es ist nicht klar, was genau schiefgelaufen ist. \n\
         $message";
-        echo "$date UNKN $status $message" | $notify_remote_hih
+        echo "$date UNKN $status $message" | $logcmd
 esac
 
 exit 0;
