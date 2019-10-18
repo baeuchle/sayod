@@ -82,7 +82,7 @@ EOF
         email="backup-user@localhost"
     fi
     mailprg=$($config --section mail --key cmd --default echo)
-    $mailprg -s 'Backup-Script' $email < $mailfile
+    $mailprg -s "$($config --section mail --key subject --default Backup\ Script)" $email < $mailfile
     if [[ "$mailprg" == "echo" ]]; then
         cat $mailfile
     fi
