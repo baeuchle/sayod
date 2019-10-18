@@ -40,8 +40,8 @@ function notify {
     esac
     msg="$* $msg"
     notify-send -u $urgency "$head" "$msg"
-    logcmd=$($config --section notify --key log)
-    logpipe=$($config --section notify --key pipe)
+    logcmd=$($config --section notify --key log --default cat)
+    logpipe=$($config --section notify --key pipe --emptydefault)
     logmsg="$msgdate $subject $msg"
     if [ "$logpipe" == "yes" ]; then
         echo "$logmsg" | $logcmd
@@ -103,19 +103,29 @@ if [ ! -r "$exclude_file" ]; then
     exit 127;
 fi
 
-provide_exe=$config_dir$($config --section target --key provide)
-
-if [ ! -d $target ]; then
-    if [ -x $provide_exe ] && [ -f $provide_exe ]; then
+for part in target source; do
+    provide_exe=$($config --section $part --key provide --emptydefault)
+    if [ ! -z "$provide_exe" ]; then
         $provide_exe
+        if [ "$?" -eq "0" ]; then
+            notify FAIL "Konnte Provide-script für $part $provide_exe
+            nicht ausführen"
+            exit 2
+        fi
     fi
-    if [ ! -d $target ]; then
-        notify FAIL "Ziel $target nicht gefunden, konnte auch nicht bereit gestellt werden"
-        exit 2
-    fi
-fi
+done
 
+privilege=$($config --section source --key privilege --emptydefault)
+if [[ "$privilege" -ne "sudo" ]]; then
+    privilege=""
+fi
+no_cross=$($config --section source --key no_cross --emptydefault)
+if [[ "$no_cross" -ne "-x" ]]; then
+    no_cross=""
+fi
+$privilege \
 rsync --partial -a \
+        $no_cross \
         --exclude-from=$exclude_file \
         $source \
         $target \

@@ -57,12 +57,19 @@ parser.add_argument('--path', required=True, help='Configuration directory')
 parser.add_argument('--section', required=True, help='Configuration file section')
 parser.add_argument('--key', required=True, help='Configuration section key')
 parser.add_argument('--file', required=False, default=CLIENT_CONFIG, help='Which file to use')
-parser.add_argument('--no-default', required=False, default=False, action='store_true', help='Return default if value is not found')
+parser.add_argument('--emptydefault', required=False, default=False, action='store_true', help='Return empty string if no entry found')
+parser.add_argument('--default', required=False, help='Return this string if no entry found')
 args = parser.parse_args()
 
 configuration = get_config(args.path, args.file)
 if configuration.has_option(args.section, args.key):
     print(configuration[args.section][args.key])
+    sys.exit(0)
+elif args.emptydefault:
+    print("")
+    sys.exit(0)
+elif args.default is not None:
+    print(args.default)
     sys.exit(0)
 else:
     print("entry {}::{} not found".format(args.section, args.key), file=sys.stderr)

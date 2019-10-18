@@ -38,7 +38,7 @@ function report_all_messages {
     fi
     mailfile=$(mktemp)
     cat >> $mailfile <<EOF
-$($config --section mail --key opening)
+$($config --section mail --key opening --default Hello)
 
 Die Analyse der letzten Backups hat $alls Meldung(en) gefunden:
 EOF
@@ -71,20 +71,17 @@ EOF
         echo "">> $mailfile
     fi
 
-    echo $($config --section mail --key closing) >> $mailfile
-    key=$($config --section mail --key sign)
+    echo $($config --section mail --key closing --default Bye) >> $mailfile
+    key=$($config --section mail --key sign --default No)
     if [[ $key == 0x* ]]; then
         gpg --armor --clearsign --local-user $key> $mailfile.asc < $mailfile
         mv $mailfile.asc $mailfile
     fi
-    email=$($config --section mail --key email)
+    email=$($config --section mail --key email --emptydefault)
     if [[ -z "$email" ]]; then
         email="backup-user@localhost"
     fi
-    mailprg=$($config --section mail --key cmd)
-    if [[ -z "$mailprg" ]]; then
-        mailprg="echo"
-    fi
+    mailprg=$($config --section mail --key cmd --default echo)
     $mailprg -s 'Backup-Script' $email < $mailfile
     if [[ "$mailprg" == "echo" ]]; then
         cat $mailfile
@@ -132,13 +129,7 @@ if [ ! -r "$logfile" ]; then
     nicht finden. Vielleicht wurde noch nie ein Backup erstellt?"
     exit 63
 fi
-wm=$($config --section status --key warn_missing)
-if [[ -z "$wm" ]] || [[ $wm -le 0 ]]; then
-    errorlog WARN "
-    Kann nicht herausfinden, was das Warnintervall ist, benutze 7 Tage
-    "
-    wm=7
-fi
+wm=$($config --section status --key warn_missing --default 7)
 last_success="$(grep ' SUCCESS ' $logfile | tail -n 1 | awk '{print $1}')"
 last_diff=$(days_in_past $last_success)
 last_start=$(days_in_past "$(grep ' START ' $logfile | tail -n 1 | awk '{print $1}')")
@@ -152,14 +143,7 @@ if [[ $last_diff -gt $wm ]]; then
 "
 fi
 
-se=$($config --section status --key stale_errors)
-if [[ -z "$se" ]] || [[ $se -le 0 ]]; then
-    errorlog WARN "
-    Kann nicht herausfinden, wie alt gemeldete Fehler sein sollen, nehme 7 Tage
-    an.
-    "
-    se=7
-fi
+se=$($config --section status --key stale_errors --default 7)
 
 cat $logfile | while read -r line; do
     line_date=${line/ */}
