@@ -24,7 +24,7 @@ function errorlog {
     shift
     count=$(ls $msg_dir/* 2>/dev/null | wc -l)
     next_count=$(( ($count + 1) ))
-    echo "$*" > $msg_dir/$next_count.$category
+    echo "* $*\n" | fold -w 72 -s > $msg_dir/$next_count.$category
 }
 
 function report_all_messages {
@@ -74,8 +74,7 @@ EOF
     echo $($config --section mail --key closing) >> $mailfile
     key=$($config --section mail --key sign)
     if [[ $key == 0x* ]]; then
-        fold -w 72 -s $mailfile | \
-            gpg --armor --clearsign --local-user $key> $mailfile.asc
+        gpg --armor --clearsign --local-user $key> $mailfile.asc < $mailfile
         mv $mailfile.asc $mailfile
     fi
     email=$($config --section mail --key email)
