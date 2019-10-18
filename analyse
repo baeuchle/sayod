@@ -118,11 +118,10 @@ if ! $config --help > /dev/null 2>&1; then
 fi
 
 logfile=$($config --section status --key file)
-if [ "$?" -ne "0" ] || [ -z "$logfile" ]; then
+if [ -z "$logfile" ]; then
     errorlog ERR "Kann Statusdateiname status::file nicht bestimmen"
     exit 127;
 fi
-
 if [ ! -r "$logfile" ]; then
     errorlog NOTIFY "Kann Statusdatei\
     $logfile\
