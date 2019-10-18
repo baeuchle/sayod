@@ -5,9 +5,10 @@ msg_dir=$(mktemp -d)
 
 function errorlog {
     category=$1
+    shift
     count=$(ls $msg_dir/* 2>/dev/null | wc -l)
-    next_count=$(( $count_cat + 1 ))
-    echo $2 > $msg_dir/$next_count.$category
+    next_count=$(( ($count + 1) ))
+    echo "$*" > $msg_dir/$next_count.$category
 }
 
 function report_all_messages {
