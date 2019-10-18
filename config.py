@@ -28,9 +28,10 @@ def default_server_config():
     ini_obj['status']['stale_errors'] = '1'
     ini_obj['status']['warn_missing'] = '7' # warn if seven days fail
     ini_obj['mail'] = {} # the notification channel
+    ini_obj['mail']['cmd'] = 'echo'
     ini_obj['mail']['subject'] = 'Backup-Script Report'
     ini_obj['mail']['email'] = '{}@localhost'.format(os.environ['USER'])
-    ini_obj['mail']['sign'] = '0x2F5FE7E3'
+    ini_obj['mail']['sign'] = 'no'
     ini_obj['mail']['opening'] = 'Lieber Backup-Benutzer!'
     ini_obj['mail']['closing'] = 'Grüße vom Backup-Analyse-Script'
     return ini_obj

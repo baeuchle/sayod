@@ -82,8 +82,14 @@ EOF
     if [[ -z "$email" ]]; then
         email="backup-user@localhost"
     fi
-    echo mail -s 'Backup-Script' $email < $mailfile
-    cat $mailfile
+    mailprg=$($config --section --mail --key cmd)
+    if [[ -z "$mailprg" ]]; then
+        mailprg="echo"
+    fi
+    $mailprg -s 'Backup-Script' $email < $mailfile
+    if [[ "$mailprg" -eq "echo" ]]; then
+        cat $mailfile
+    fi
     rm $mailfile
     rm -rf $msg_dir
 }
