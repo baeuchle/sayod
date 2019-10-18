@@ -87,7 +87,7 @@ EOF
         mailprg="echo"
     fi
     $mailprg -s 'Backup-Script' $email < $mailfile
-    if [[ "$mailprg" -eq "echo" ]]; then
+    if [[ "$mailprg" == "echo" ]]; then
         cat $mailfile
     fi
     rm $mailfile
