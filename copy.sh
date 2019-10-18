@@ -7,6 +7,7 @@ if [ "$(which notify-send)" == "" ]; then
 fi
 
 function notify {
+    msgdate="$(date +%Y-%m-%dT%H:%M:%S)"
     msg=""
     level=$1
     shift
@@ -14,7 +15,7 @@ function notify {
         FAIL) # Fehler beim Ausführen
             subject="FAIL"
             urgency="critical"
-            head="Backup: Fehler $(date)"
+            head="Backup: Fehler $msgdate"
         ;;
         FATAL) # Fehler im Script / Konfiguration
             subject="WTF!"
@@ -25,22 +26,23 @@ function notify {
             subject="START"
             urgency="low"
             head="Starte Backup"
-            msg="$(date)"
+            msg="$msgdate"
         ;;
         SUCCESS)
-            subject="SUCC"
+            subject="SUCCESS"
             urgency="low"
             head="Backup: Erfolg"
+        ;;
         *)
             subject="$1"
             shift
         ;;
     esac
-    msg=$* $msg
+    msg="$* $msg"
     notify-send -u $urgency "$head" "$msg"
     logcmd=$($config --section notify --key log)
     logpipe=$($config --section notify --key pipe)
-    logmsg="$(date) $level_for_log $message"
+    logmsg="$msgdate $subject $msg"
     if [ "$logpipe" == "yes" ]; then
         echo "$logmsg" | $logcmd
     else
@@ -59,7 +61,7 @@ if ! $config --help > /dev/null 2>&1; then
     exit 127;
 fi
 
-notify START "Starte Backup" "$(date)"
+notify START "Starte Backup"
 
 # This part should do the actual copying.
 source=$($config --section source --key path)
@@ -72,10 +74,13 @@ if [ "$?" -ne "0" ] || [ -z "$target" ]; then
     notify FATAL "Kann Zielpfad nicht bestimmen (sollte in target::path stehen)"
     exit 127;
 fi
-exclude_file=$config_dir$($config --section source --key exclude_file)
+exclude_file=$($config --section source --key exclude_file)
 if [ "$?" -ne "0" ] || [ -z "$exclude_file" ]; then
     notify FATAL "Kann nicht bestimmen, welche Dateien vom Backup ausgeschlossen werden sollen (sollte in source::exclude_file stehen)"
     exit 127;
+fi
+if [[ $exclude_file != /* ]]; then
+    exclude_file=$config_dir$exclude_file
 fi
 if [ ! -r "$exclude_file" ]; then
     notify FATAL "Kann Datei mit Ausschlussliste nicht lesen\n$exclude_file"
@@ -95,7 +100,6 @@ if [ ! -d $target ]; then
 fi
 
 rsync --partial -a \
-        -n \
         --exclude-from=$exclude_file \
         $source \
         $target \

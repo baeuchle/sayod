@@ -12,15 +12,13 @@ def default_config():
     ini_obj = configparser.ConfigParser()
     ini_obj['notify'] = {}
     ini_obj['notify']['log'] = 'ssh frankfurtium.de cat >> backup_status'
-    ini_obj['notify']['local_0'] = 'notify-send -u critical '
-    ini_obj['notify']['local_1'] = 'notify-send -u normal '
-    ini_obj['notify']['local_2'] = 'notify-send -u low '
+    ini_obj['notify']['pipe'] = 'yes'
     ini_obj['target'] = {}
     ini_obj['target']['path'] = "{}/.backup/data/".format(os.environ['HOME'])
     ini_obj['target']['provide'] = ""
     ini_obj['source'] = {}
     ini_obj['source']['path'] = os.environ['HOME']
-    ini_obj['source']['exclude_file'] = '../backup/exclude'
+    ini_obj['source']['exclude_file'] = '{}/.config/backup/exclude'.format(os.environ['HOME'])
     return ini_obj
 
 def default_server_config():
