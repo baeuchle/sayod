@@ -162,7 +162,8 @@ if [[ -z "$se" ]] || [[ $se -le 0 ]]; then
 fi
 
 cat $logfile | while read -r line; do
-    line_past=$(days_in_past $(date -I -d "${line/ */}"))
+    line_date=${line/ */}
+    line_past=$(days_in_past $(date -I -d "$line_date"))
     if [[ $line_past -le $se ]]; then
         line_level=$(awk '{print $2}' <<<$line)
         line_msg=$(cut -d' ' -f3- <<<$line)
@@ -172,7 +173,7 @@ cat $logfile | while read -r line; do
             SUCCESS)
                 ;;
             *)
-                errorlog ERR "$line_msg ($line_level ${line/ */})"
+                errorlog ERR "$line_date ($line_level)\n$line_msg"
                 ;;
         esac
     fi
