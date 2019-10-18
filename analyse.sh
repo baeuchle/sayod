@@ -3,6 +3,22 @@
 exec_dir=$(dirname $0)
 msg_dir=$(mktemp -d)
 
+function get_seconds {
+    curr_date="$*"
+    if [ "$curr_date" == "" ]; then
+        date +%s
+        return
+    fi
+    date +%s -d "$curr_date"
+}
+
+function days_in_past {
+    curr_date="$*"
+    curr_seconds=$(get_seconds "$curr_date")
+    now_seconds=$(get_seconds)
+    echo $(( ($now_seconds - $curr_seconds) / (24 * 60 * 60) ))
+}
+
 function errorlog {
     category=$1
     shift
@@ -104,15 +120,16 @@ if [[ -z "$wm" ]] || [[ $wm -le 0 ]]; then
     "
     wm=7
 fi
-last_success=$(grep ' SUC. ' $logfile | tail -n 1 | awk '{print $1}')
-ls_date=$(date +%s -d "$last_success")
-last_diff=$(( ($now_date - $ls_date) / (24 * 60 * 60 * $wm) ))
-if [ $last_diff -gt 0 ]; then
+last_success="$(grep ' SUCCESS ' $logfile | tail -n 1 | awk '{print $1}')"
+last_diff=$(days_in_past $last_success)
+last_start=$(days_in_past "$(grep ' START ' $logfile | tail -n 1 | awk '{print $1}')")
+if [[ $last_diff -gt $wm ]]; then
     errorlog WARN "
-        Das letzte erfolgreiche Backup ist länger als $wm Tage her. Nach
-        dieser Zeitspanne erhälst du diese Warnung, weil wir sichergehen
-        wollen, dass ein ausbleibendes Backup nicht bedeutet, dass etwas
-        kaputt ist.
+        Das letzte erfolgreiche Backup ist länger als $wm Tage her (es
+        wurde bei $last_success beendet). Nach dieser Zeitspanne erhälst
+        du diese Warnung, weil wir sichergehen wollen, dass ein
+        ausbleibendes Backup nicht bedeutet, dass etwas kaputt ist.
+        Das letzte angefangende Backup war vor $last_start Tagen.
 "
 fi
 
@@ -126,20 +143,17 @@ if [[ -z "$se" ]] || [[ $se -le 0 ]]; then
 fi
 
 cat $logfile | while read -r line; do
-    line_date=$(date +%s -d "${line/ */}")
-    line_past=$(( ($now_date - $line_date) / (24 * 60 * 60 * $se) ))
-    if [ $line_past -le 1 ]; then
+    line_past=$(days_in_past $(date -I -d "${line/ */}"))
+    if [[ $line_past -le $se ]]; then
         line_level=$(awk '{print $2}' <<<$line)
         line_msg=$(cut -d' ' -f3- <<<$line)
         case $line_level in
             START)
                 ;;
-            SUCC)
-                ;;
-            SUC*)
+            SUCCESS)
                 ;;
             *)
-                errorlog ERR "$line_msg"
+                errorlog ERR "$line_msg ($line_level ${line/ */})"
                 ;;
         esac
     fi
