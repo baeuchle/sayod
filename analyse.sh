@@ -106,7 +106,6 @@ if [ "$?" -ne "0" ] || [ -z "$logfile" ]; then
     exit 127;
 fi
 
-now_date=$(date +%s)
 if [ ! -r "$logfile" ]; then
     errorlog NOTIFY "Kann Statusdatei\
     $logfile\
