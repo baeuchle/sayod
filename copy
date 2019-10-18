@@ -22,6 +22,11 @@ function notify {
     level=$1
     shift
     case "$level" in
+        ABORT)
+            subject="ABORT"
+            urgency="normal"
+            head="Backup abgebrochen"
+        ;;
         FAIL) # Fehler beim Ausführen
             subject="FAIL"
             urgency="critical"
@@ -109,7 +114,7 @@ if [[ $exclude_file != /* ]]; then
     exclude_file=$config_dir$exclude_file
 fi
 if [ ! -r "$exclude_file" ]; then
-    notify FATAL "Kann Datei mit Ausschlussliste nicht lesen\n$exclude_file"
+    notify FATAL "Kann Datei mit Ausschlussliste $exclude_file nicht lesen"
     exit 127;
 fi
 
@@ -118,8 +123,7 @@ for part in target source; do
     if [ ! -z "$provide_exe" ]; then
         $provide_exe
         if [ "$?" -ne "0" ]; then
-            notify FAIL "Konnte Provide-script für $part $provide_exe
-            nicht ausführen"
+            notify FAIL "Konnte Provide-script für $part $provide_exe nicht ausführen"
             exit 2
         fi
     fi
@@ -149,6 +153,9 @@ case $rsync_error in
         exit 0;;
     23|24)
         notify SUCCESS "Nicht alle Quelldateien konnten gelesen werden";
+        exit 0;;
+    20)
+        notify ABORT "copy aborted";
         exit 0;;
     [1246])
         notify FATAL "rsync usage error";

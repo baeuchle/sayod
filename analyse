@@ -24,7 +24,7 @@ function errorlog {
     shift
     count=$(ls $msg_dir/* 2>/dev/null | wc -l)
     next_count=$(( ($count + 1) ))
-    echo "* $*\n" | fold -w 72 -s > $msg_dir/$next_count.$category
+    echo "* $*\n" | sed 's/\\n/\n/g' | fold -w 72 -s > $msg_dir/$next_count.$category
 }
 
 function report_all_messages {
@@ -155,6 +155,9 @@ cat $logfile | while read -r line; do
                 ;;
             SUCCESS)
                 ;;
+            ABORT)
+                errorlog WARN "$line_date ($line_level)\n$line_msg"
+            ;;
             *)
                 errorlog ERR "$line_date ($line_level)\n$line_msg"
                 ;;
