@@ -6,6 +6,16 @@ if [ "$(which notify-send)" == "" ]; then
     exit 127
 fi
 
+function cleanup {
+    for part in target source; do
+        clean_cmd=$($config --section $part --key release --emptydefault)
+        if [ ! -z "$clean_cmd" ]; then
+            $clean_cmd
+        fi
+    done
+}
+trap cleanup EXIT
+
 function notify {
     msgdate="$(date +%Y-%m-%dT%H:%M:%S)"
     msg=""
