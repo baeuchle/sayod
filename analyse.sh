@@ -82,7 +82,7 @@ EOF
     if [[ -z "$email" ]]; then
         email="backup-user@localhost"
     fi
-    mailprg=$($config --section --mail --key cmd)
+    mailprg=$($config --section mail --key cmd)
     if [[ -z "$mailprg" ]]; then
         mailprg="echo"
     fi
