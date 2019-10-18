@@ -38,7 +38,7 @@ function report_all_messages {
     fi
     mailfile=$(mktemp)
     cat >> $mailfile <<EOF
-$($config --section channel --key opening)
+$($config --section mail --key opening)
 
 Die Analyse der letzten Backups hat $alls Meldung(en) gefunden:
 EOF
@@ -71,14 +71,14 @@ EOF
         echo "">> $mailfile
     fi
 
-    echo $($config --section channel --key closing) >> $mailfile
-    key=$($config --section channel --key sign)
+    echo $($config --section mail --key closing) >> $mailfile
+    key=$($config --section mail --key sign)
     if [[ $key == 0x* ]]; then
         fold -w 72 -s $mailfile | \
             gpg --armor --clearsign --local-user $key> $mailfile.asc
         mv $mailfile.asc $mailfile
     fi
-    email=$($config --section channel --key email)
+    email=$($config --section mail --key email)
     if [[ -z "$email" ]]; then
         email="backup-user@localhost"
     fi

@@ -29,7 +29,7 @@ def default_server_config():
     ini_obj['status']['file'] = 'backup_status'
     ini_obj['status']['stale_errors'] = '1'
     ini_obj['status']['warn_missing'] = '7' # warn if seven days fail
-    ini_obj['channel'] = {} # the notification channel
+    ini_obj['mail'] = {} # the notification channel
     ini_obj['mail']['subject'] = 'Backup-Script Report'
     ini_obj['mail']['email'] = '{}@localhost'.format(os.environ['USER'])
     ini_obj['mail']['sign'] = '0x2F5FE7E3'
