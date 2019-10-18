@@ -117,7 +117,7 @@ for part in target source; do
     provide_exe=$($config --section $part --key provide --emptydefault)
     if [ ! -z "$provide_exe" ]; then
         $provide_exe
-        if [ "$?" -eq "0" ]; then
+        if [ "$?" -ne "0" ]; then
             notify FAIL "Konnte Provide-script für $part $provide_exe
             nicht ausführen"
             exit 2
