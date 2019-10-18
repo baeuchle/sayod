@@ -100,7 +100,22 @@ if [ "$?" -ne "0" ] || [ -z "$config_dir" ]; then
     errorlog ERR "Kann Konfigurationsverzeichnis nicht bestimmen"
     exit 127;
 fi
-config="$exec_dir/config.py --path $config_dir --file analyse.rc"
+rc=analyse.rc
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --config)
+            shift;
+            if [[ ! -z "$1" ]]; then
+                rc=$1
+            fi
+            shift;
+        ;;
+        *)
+            shift;
+        ;;
+    esac
+done
+config="$exec_dir/config.py --path $config_dir --file $rc"
 if ! $config --help > /dev/null 2>&1; then
     errorlog ERR "Konfigurationsscript kann nicht gestartet werden"
     exit 127;
