@@ -111,13 +111,13 @@ while [ $# -gt 0 ]; do
         ;;
     esac
 done
-config="$exec_dir/config.py --path $config_dir --file $rc"
-if ! $config --help > /dev/null 2>&1; then
-    errorlog ERR "Konfigurationsscript kann nicht gestartet werden"
+config="$exec_dir/config.py --file $config_dir$rc"
+if ! $config --doesfileexist --section a --key b; then
+    errorlog ERR "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei nicht gefunden"
     exit 127;
 fi
 
-logfile=$($config --section status --key file)
+logfile=$($config --section status --key file --emptydefault)
 if [ -z "$logfile" ]; then
     errorlog ERR "Kann Statusdateiname status::file nicht bestimmen"
     exit 127;

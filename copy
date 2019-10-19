@@ -86,27 +86,27 @@ while [ $# -gt 0 ]; do
         ;;
     esac
 done
-config="$exec_dir/config.py --path $config_dir --file $rc"
-if ! $config --help > /dev/null 2>&1; then
-    notify FATAL "Konfigurationsscript kann nicht gestartet werden"
+config="$exec_dir/config.py --file $config_dir$rc"
+if ! $config --doesfileexist --section a --key b; then
+    notify FATAL "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei nicht gefunden"
     exit 127;
 fi
 
 notify START "Starte Backup"
 
 # This part should do the actual copying.
-source=$($config --section source --key path)
-if [ "$?" -ne "0" ] || [ -z "$source" ]; then
+source=$($config --section source --key path --emptydefault)
+if [ -z "$source" ]; then
     notify FATAL "Kann Quellpfad nicht bestimmen (sollte in source::path stehen)"
     exit 127;
 fi
-target=$($config --section target --key path)
-if [ "$?" -ne "0" ] || [ -z "$target" ]; then
+target=$($config --section target --key path --emptydefault)
+if [ -z "$target" ]; then
     notify FATAL "Kann Zielpfad nicht bestimmen (sollte in target::path stehen)"
     exit 127;
 fi
-exclude_file=$($config --section source --key exclude_file)
-if [ "$?" -ne "0" ] || [ -z "$exclude_file" ]; then
+exclude_file=$($config --section source --key exclude_file --emptydefault)
+if [ -z "$exclude_file" ]; then
     notify FATAL "Kann nicht bestimmen, welche Dateien vom Backup ausgeschlossen werden sollen (sollte in source::exclude_file stehen)"
     exit 127;
 fi
