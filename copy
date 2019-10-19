@@ -126,12 +126,25 @@ fi
 
 for part in target source; do
     provide_exe=$($config --section $part --key provide --emptydefault)
-    if [ ! -z "$provide_exe" ]; then
+    provide_if=$($config --section $part --key provide_if --default echo\ 0)
+    if [ ! -z "$provide_exe" ] && [[ "$(eval $provide_if)" -eq "0" ]]; then
         eval $provide_exe
-        if [ "$?" -ne "0" ]; then
-            notify FAIL "Konnte Provide-script für $part $provide_exe nicht ausführen"
-            exit 2
-        fi
+        case "$?" in
+            0) # normal ok
+            ;;
+            1) # if exe is zenity: user clicked cancel
+                notify ABORT "Bereitstellen von $part abgebrochen"
+                exit 0
+            ;;
+            5) # if exe is zenity: timeout
+                notify ABORT "Bereitstellen von $part dauerte zu lange"
+                exit 0
+            ;;
+            *)
+                notify FAIL "Bereitstellen von $part mittels $provide_exe fehlgeschlagen"
+                exit 2
+            ;;
+        esac
     fi
 done
 
