@@ -8,6 +8,9 @@ fi
 
 # make sure notify-send works from cronjob
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
+if [ -z "$DISPLAY" ]; then
+    export DISPLAY=:0.0
+fi
 
 function cleanup {
     for part in target source; do
@@ -124,7 +127,7 @@ fi
 for part in target source; do
     provide_exe=$($config --section $part --key provide --emptydefault)
     if [ ! -z "$provide_exe" ]; then
-        $provide_exe
+        eval $provide_exe
         if [ "$?" -ne "0" ]; then
             notify FAIL "Konnte Provide-script für $part $provide_exe nicht ausführen"
             exit 2
