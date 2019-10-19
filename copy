@@ -6,6 +6,9 @@ if [ "$(which notify-send)" == "" ]; then
     exit 127
 fi
 
+# make sure notify-send works from cronjob
+export XDG_RUNTIME_DIR=/run/user/$(id -u)
+
 function cleanup {
     for part in target source; do
         clean_cmd=$($config --section $part --key release --emptydefault)
