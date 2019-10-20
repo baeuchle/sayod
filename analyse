@@ -146,12 +146,15 @@ if [[ $last_diff -gt $wm ]]; then
 "
 fi
 
-se=$($config --section status --key stale_errors --default 7)
+last_analysis=$(get_seconds "$(grep ' ANALYSE ' $logfile | tail -n 1 | awk '{print $1}')")
+if [ -z "$last_analysis" ]; then
+    last_analysis=0
+fi
 
 cat $logfile | while read -r line; do
     line_date=${line/ */}
-    line_past=$(days_in_past $(date -I -d "$line_date"))
-    if [[ $line_past -le $se ]]; then
+    line_seconds=$(get_seconds $line_date)
+    if [[ $line_seconds -gt $last_analysis ]]; then
         line_level=$(awk '{print $2}' <<<$line)
         line_msg=$(cut -d' ' -f3- <<<$line)
         case $line_level in
