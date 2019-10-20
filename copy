@@ -39,7 +39,8 @@ function ask_provide {
 
 # may be used in provide_unless directives
 function dir_exists {
-    return [[ -d "$*" ]]
+    [[ -d "$*" ]]
+    return $?
 }
 
 # may be used in provide_unless directives
@@ -175,7 +176,7 @@ fi
 for part in target source; do
     provide_exe=$($config --section $part --key provide --emptydefault)
     provide_unless=$($config --section $part --key provide_unless --default false)
-    if [ ! -z "$provide_exe" ] && [[ ! $(eval $provide_unless) ]]; then
+    if [ ! -z "$provide_exe" ] && ! $provide_unless; then
         eval $provide_exe
         case "$?" in
             0) # normal ok
