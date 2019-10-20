@@ -88,8 +88,10 @@ EOF
     fi
     rm $mailfile
     rm -rf $msg_dir
-    msgdate="$(date +%Y-%m-%dT%H:%M:%S)"
-    echo "$msgdate ANALYSE $config_dir$rc" >> $logfile
+    if [ -w "$logfile" ]; then
+        msgdate="$(date +%Y-%m-%dT%H:%M:%S)"
+        echo "$msgdate ANALYSE $config_dir$rc" >> $logfile
+    fi
 }
 trap report_all_messages EXIT
 
