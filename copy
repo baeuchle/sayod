@@ -94,7 +94,7 @@ while [ $# -gt 0 ]; do
 done
 config="$exec_dir/config.py --file $config_dir$rc"
 if ! $config --doesfileexist --section a --key b; then
-    notify FATAL "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei nicht gefunden"
+    notify FATAL "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei $config_dir$rc nicht gefunden"
     exit 127;
 fi
 
