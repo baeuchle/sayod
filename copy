@@ -73,35 +73,42 @@ function notify {
             subject="ABORT"
             urgency="normal"
             head="Backup abgebrochen"
+            timeout="10000"
         ;;
         FAIL) # Fehler beim Ausführen
             subject="FAIL"
             urgency="critical"
             head="Backup: Fehler $msgdate"
+            timeout="60000"
         ;;
         FATAL) # Fehler im Script / Konfiguration
             subject="WTF!"
             urgency="critical"
             head="Backup-Fehler (Fatal)"
+            timeout="3600000"
         ;;
         START)
             subject="START"
             urgency="low"
             head="Starte Backup"
             msg="$msgdate"
+            timeout="4000"
         ;;
         SUCCESS)
             subject="SUCCESS"
             urgency="low"
             head="Backup: Erfolg"
+            timeout="4000"
         ;;
         *)
             subject="$1"
+            timeout="5000"
+            urgency="normal"
             shift
         ;;
     esac
     msg="$* $msg"
-    notify-send -u $urgency "$head" "$(fold -w 36 -s <<<$msg)"
+    notify-send -u $urgency -t $timeout "$head" "$(fold -w 36 -s <<<$msg)"
     logcmd=$($config --section notify --key log --default cat)
     logpipe=$($config --section notify --key pipe --emptydefault)
     logmsg="$msgdate $subject $msg"
