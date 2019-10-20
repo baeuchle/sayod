@@ -88,6 +88,8 @@ EOF
     fi
     rm $mailfile
     rm -rf $msg_dir
+    msgdate="$(date +%Y-%m-%dT%H:%M:%S)"
+    echo "$msgdate ANALYSE $config_dir$rc"
 }
 trap report_all_messages EXIT
 
@@ -151,16 +153,18 @@ cat $logfile | while read -r line; do
         line_level=$(awk '{print $2}' <<<$line)
         line_msg=$(cut -d' ' -f3- <<<$line)
         case $line_level in
-            START)
-                ;;
-            SUCCESS)
-                ;;
             ABORT)
                 errorlog WARN "$line_date ($line_level)\n$line_msg"
             ;;
+            ANALYSE)
+            ;;
+            START)
+            ;;
+            SUCCESS)
+            ;;
             *)
                 errorlog ERR "$line_date ($line_level)\n$line_msg"
-                ;;
+            ;;
         esac
     fi
 done
