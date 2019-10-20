@@ -12,6 +12,44 @@ if [ -z "$DISPLAY" ]; then
     export DISPLAY=:0.0
 fi
 
+# may be used as provide script if user interaction is required.
+function ask_provide {
+    timeout=$1;
+    shift;
+    question="$*"
+    zenity --question --timeout=$timeout --text="$question"
+    case "$?" in
+        0)
+            return 0
+        ;;
+        1)
+            notify ABORT "Bereitstellen abgebrochen"
+            exit 0
+        ;;
+        5)
+            notify ABORT "Bereitstellen dauerte zu lange"
+            exit 0
+        ;;
+        *)
+            return $?
+        ;;
+    esac
+}
+
+function dir_exists {
+    return [[ -d "$*" ]]
+}
+
+function is_mountpoint {
+    dir="$*"
+    if [ "$dir" != "/" ]; then
+        dir=${dir%/}
+    fi
+    if [ -z "$dir" ]; then return 2; fi
+    mount | grep -q " $dir "
+    return $?
+}
+
 function cleanup {
     for part in target source; do
         clean_cmd=$($config --section $part --key release --emptydefault)
@@ -126,22 +164,14 @@ fi
 
 for part in target source; do
     provide_exe=$($config --section $part --key provide --emptydefault)
-    provide_if=$($config --section $part --key provide_if --default echo\ 0)
-    if [ ! -z "$provide_exe" ] && [[ "$(eval $provide_if)" -eq "0" ]]; then
+    provide_unless=$($config --section $part --key provide_unless --default false)
+    if [ ! -z "$provide_exe" ] && [[ ! $(eval $provide_unless) ]]; then
         eval $provide_exe
         case "$?" in
             0) # normal ok
             ;;
-            1) # if exe is zenity: user clicked cancel
-                notify ABORT "Bereitstellen von $part abgebrochen"
-                exit 0
-            ;;
-            5) # if exe is zenity: timeout
-                notify ABORT "Bereitstellen von $part dauerte zu lange"
-                exit 0
-            ;;
             *)
-                notify FAIL "Bereitstellen von $part mittels $provide_exe fehlgeschlagen"
+                notify FAIL "Bereitstellen von $part mittels $provide_exe fehlgeschlagen ($?)"
                 exit 2
             ;;
         esac
