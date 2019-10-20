@@ -8,6 +8,7 @@ fi
 
 # make sure notify-send works from cronjob
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
+# same for zenity
 if [ -z "$DISPLAY" ]; then
     export DISPLAY=:0.0
 fi
