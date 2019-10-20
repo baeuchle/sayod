@@ -37,10 +37,12 @@ function ask_provide {
     esac
 }
 
+# may be used in provide_unless directives
 function dir_exists {
     return [[ -d "$*" ]]
 }
 
+# may be used in provide_unless directives
 function is_mountpoint {
     dir="$*"
     if [ "$dir" != "/" ]; then
