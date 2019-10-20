@@ -82,14 +82,14 @@ EOF
         email="backup-user@localhost"
     fi
     mailprg=$($config --section mail --key cmd --default echo)
-    $mailprg --content-type="text/plain; charset=utf-8" -s "$($config --section mail --key subject --default Backup\ Script)" $email < $mailfile
+    $mailprg --content-type=\"text/plain; charset=utf-8\" -s "$($config --section mail --key subject --default Backup\ Script)" $email < $mailfile
     if [[ "$mailprg" == "echo" ]]; then
         cat $mailfile
     fi
     rm $mailfile
     rm -rf $msg_dir
     msgdate="$(date +%Y-%m-%dT%H:%M:%S)"
-    echo "$msgdate ANALYSE $config_dir$rc"
+    echo "$msgdate ANALYSE $config_dir$rc" >> $logfile
 }
 trap report_all_messages EXIT
 
