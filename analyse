@@ -55,19 +55,19 @@ EOF
     if [ $errs -gt 0 ]; then
         echo "##### FEHLER #####" >> $mailfile
         echo "" >> $mailfile
-        cat $msg_dir/*.ERR >> $mailfile
+        sed 's/\\n/\n/g' $msg_dir/*.ERR >> $mailfile
         echo "">> $mailfile
     fi
     if [ $warn -gt 0 ]; then
         echo "##### WARNUNGEN #####" >> $mailfile
         echo "" >> $mailfile
-        cat $msg_dir/*.WARN >> $mailfile
+        sed 's/\\n/\n/g' $msg_dir/*.WARN >> $mailfile
         echo "">> $mailfile
     fi
     if [ $noti -gt 0 ]; then
         echo "##### INFORMATIONEN #####" >> $mailfile
         echo "" >> $mailfile
-        cat $msg_dir/*.NOTIFY >> $mailfile
+        sed 's/\\n/\n/g' $msg_dir/*.NOTIFY >> $mailfile
         echo "">> $mailfile
     fi
 

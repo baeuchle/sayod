@@ -109,7 +109,7 @@ function notify {
         ;;
     esac
     msg="$* $msg"
-    notify-send -u $urgency -t $timeout "$head" "$(fold -w 36 -s <<<$msg)"
+    notify-send -u $urgency -t $timeout "$head" "$(sed 's/\\n/\n/g' <<<$msg | fold -w 36 -s)"
     logcmd=$($config --section notify --key log --default cat)
     logpipe=$($config --section notify --key pipe --emptydefault)
     logmsg="$msgdate $subject $msg"
