@@ -61,6 +61,12 @@ function cleanup {
             $clean_cmd
         fi
     done
+    if [ -f "$rsyncerrfile" ]; then
+        rm "$rsyncerrfile"
+    fi
+    if [ -f "$rsynclogfile" ]; then
+        rm "$rsynclogfile"
+    fi
 }
 trap cleanup EXIT
 
@@ -197,36 +203,42 @@ no_cross=$($config --section source --key no_cross --emptydefault)
 if [[ "$no_cross" -ne "-x" ]]; then
     no_cross=""
 fi
+rsynclogfile=$(mktemp)
+rsyncerrfile=$(mktemp)
 $privilege \
-rsync --partial -a \
+rsync --partial -va \
         $no_cross \
         --exclude-from=$exclude_file \
         $source \
         $target \
-        > $config_dir/rsync.log \
-        2> $config_dir/rsync.err
+        > $rsynclogfile \
+        2> $rsyncerrfile
 rsync_error=$?
 
+loglines=$(wc -l < $rsynclogfile)
+log_in_one_line=$(awk 1 ORS='\\n' "$rsynclogfile")
+errlines=$(wc -l < $rsyncerrfile)
+err_in_one_line=$(awk 1 ORS='\\n' "$rsyncerrfile")
 case $rsync_error in
     0)
-        notify SUCCESS
+        notify SUCCESS "$err_in_one_line";
         exit 0;;
     23|24)
-        notify SUCCESS "Nicht alle Quelldateien konnten gelesen werden";
+        notify SUCCESS "Nicht alle Quelldateien konnten gelesen werden\\n$err_in_one_line";
         exit 0;;
     20)
-        notify ABORT "Kopiervorgang abgebrochen";
+        notify ABORT "Kopiervorgang abgebrochen $loglines/$errlines Zeilen\\n$err_in_one_line";
         exit 0;;
     [1246])
-        notify FATAL "rsync falsch benutzt";
+        notify FATAL "rsync falsch benutzt $rsync_error\\n$err_in_one_line";
         exit 1;;
     3|5|10|11|12|13|14|21|22)
-        notify FAIL "rsync copy error ($rsync_error)";
+        notify FAIL "rsync copy error $rsync_error\\n$err_in_one_line";
         exit 2;;
     25|40|35)
-        notify FAIL "rsync other error $rsync_error";
+        notify FAIL "rsync other error $rsync_error\\n$err_in_one_line";
         exit 3;;
     *)
-        notify FAIL "Unknown rsync error $rsync_error";
+        notify FAIL "Unknown rsync error $rsync_error\\n$err_in_one_line";
         exit $rsync_error;;
 esac
