@@ -1,0 +1,49 @@
+#!/usr/bin/python3
+
+import sys
+from pathlib import Path
+import argparse
+import config
+
+config_base = Path.home() / '.config' / 'backup'
+
+line = sys.stdin.readline().strip()
+content_type = "text/x-plain-log"
+if line.startswith("content-type: "):
+    content_type = line[len("content-type: "):]
+    line = sys.stdin.readline().strip()
+
+if not content_type == "text/x-plain-log":
+    print("Kann andere Daten als plain log nicht lesen!", file=sys.stderr)
+    sys.exit(15)
+
+givenpath = Path(line)
+if givenpath.is_absolute():
+    config_file = givenpath
+else:
+    config_file = config_base / givenpath
+
+for line in sys.stdin:
+    if line.strip() == "":
+        continue
+    subject = line.strip()
+    break
+
+# remainder: content.
+content = sys.stdin.read().strip().replace("\n", '\\n')
+
+
+print("Found content type <<{}>>".format(content_type))
+print("Found file name <<{}>>".format(config_file))
+print("Found subject <<{}>>".format(subject))
+print("Content: <<{}>>".format(content))
+
+args = argparse.Namespace()
+args.file = config_file
+args.doesfileexist = False
+args.section = "status"
+args.key = "file"
+args.emptydefault = False
+args.default = None
+
+print(config.find_entry(args))
