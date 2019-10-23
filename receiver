@@ -35,7 +35,7 @@ content = sys.stdin.read().strip().replace("\n", '\\n')
 
 status, log_file = config.find_entry(config_file, "status", "file")
 if status != 0:
-    print("Cannot find status target", file=sys.stderr)
+    print("Cannot find status::file in", config_file, file=sys.stderr)
     sys.exit(status)
 
 with open(log_file, 'a') as log:

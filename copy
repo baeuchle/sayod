@@ -121,7 +121,7 @@ function notify {
     logpipe=$($config --section notify --key pipe --emptydefault)
     logmsg="$msgdate\n$subject\n$msg"
     if [ "$logpipe" == "yes" ]; then
-        echo "$logmsg" | ssh $loguser@$loghost receiver
+        echo -e "$logmsg" | ssh $loguser@$loghost receiver
     else
         echo "$logmsg"
     fi
