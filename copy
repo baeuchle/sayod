@@ -116,13 +116,14 @@ function notify {
     esac
     msg="$* $msg"
     notify-send -u $urgency -t $timeout "$head" "$(sed 's/\\n/\n/g' <<<$msg | fold -w 36 -s)"
-    logcmd=$($config --section notify --key log --default cat)
+    loghost=$($config --section notify --key host --default localhost)
+    loguser=$($config --section notify --key user --default $USER)
     logpipe=$($config --section notify --key pipe --emptydefault)
-    logmsg="$msgdate $subject $msg"
+    logmsg="$msgdate\n$subject\n$msg"
     if [ "$logpipe" == "yes" ]; then
-        echo "$logmsg" | $logcmd
+        echo "$logmsg" | ssh $loguser@$loghost receiver
     else
-        $logcmd "$logmsg"
+        echo "$logmsg"
     fi
 }
 
