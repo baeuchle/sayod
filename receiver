@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 import argparse
 import config
+import datetime
 
 config_base = Path.home() / '.config' / 'backup'
 
@@ -32,18 +33,10 @@ for line in sys.stdin:
 # remainder: content.
 content = sys.stdin.read().strip().replace("\n", '\\n')
 
+status, log_file = config.find_entry(config_file, "status", "file")
+if status != 0:
+    print("Cannot find status target", file=sys.stderr)
+    sys.exit(status)
 
-print("Found content type <<{}>>".format(content_type))
-print("Found file name <<{}>>".format(config_file))
-print("Found subject <<{}>>".format(subject))
-print("Content: <<{}>>".format(content))
-
-args = argparse.Namespace()
-args.file = config_file
-args.doesfileexist = False
-args.section = "status"
-args.key = "file"
-args.emptydefault = False
-args.default = None
-
-print(config.find_entry(args))
+with open(log_file, 'a') as log:
+    log.write("{:%Y-%m-%dT%H:%M:%S} {} {}\n".format(datetime.datetime.now(), subject, content))
