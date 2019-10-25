@@ -23,7 +23,7 @@ class LogEntry:
                     self.date = datetime.datetime.strptime(words[0], LogEntry.timeformat) 
                     self.subject = words[1]
                     if len(words) > 2:
-                        self.content = words[2]
+                        self.content = ' '.join(words[2:])
                 except:
                     self.subject = words[0]
                     self.content = ' '.join(words[1:])
