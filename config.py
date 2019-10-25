@@ -40,7 +40,7 @@ class Config:
             raise Exception("Bad config")
         return result[1]
 
-    def find_entry_args(args):
+    def find_entry_args(self, args):
         if args.emptydefault:
             args.default = ""
         return self.find_entry(args.section, args.key, args.doesfileexist, args.default)
