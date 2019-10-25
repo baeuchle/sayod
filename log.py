@@ -31,6 +31,8 @@ class LogEntry:
             self.content = content
             if subject is None:
                 self.subject = "NONE"
+            else:
+                self.subject = subject
         self.content = self.content.replace('\\n', "\n")
         return
 
@@ -123,3 +125,7 @@ class Log:
         result = self._find(**kwargs)
         self.file_obj.seek(old_position, 0)
         return result
+
+    def append(self, new_entry):
+        self.file_obj.seek(0, 2)
+        self.file_obj.write(str(new_entry) + "\n")

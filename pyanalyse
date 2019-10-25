@@ -9,14 +9,15 @@ from smtplib import SMTP
 import sys
 
 from config import Config
-import log
+from log import LogEntry
+from log import Log
 
 parser = argparse.ArgumentParser(description='Analyses log entries and reports via mail')
 parser.add_argument('--config', required=True, help='Configuration source')
 args = parser.parse_args()
 
 config = Config(args.config)
-log_obj = log.Log(config.find('status', 'file', ''), 'r')
+log_obj = Log(config.find('status', 'file', ''), 'a+')
 
 warn_missing_success = config.find("status", "warn_missing", 9)
 
