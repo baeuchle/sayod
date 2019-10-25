@@ -1,12 +1,9 @@
 #!/usr/bin/python3
 
 import sys
-from pathlib import Path
-import argparse
-import config
-import datetime
 
-config_base = Path.home() / '.config' / 'backup'
+from config import Config
+from log import LogEntry, Log
 
 line = sys.stdin.readline().strip()
 content_type = "text/x-plain-log"
@@ -18,25 +15,23 @@ if not content_type == "text/x-plain-log":
     print("Kann andere Daten als plain log nicht lesen!", file=sys.stderr)
     sys.exit(15)
 
-givenpath = Path(line)
-if givenpath.is_absolute():
-    config_file = givenpath
-else:
-    config_file = config_base / givenpath
+
+config = Config(line)
+entry = LogEntry("")
 
 for line in sys.stdin:
     if line.strip() == "":
         continue
-    subject = line.strip()
+    entry.subject = line.strip()
     break
 
 # remainder: content.
-content = sys.stdin.read().strip().replace("\n", '\\n')
+entry.content = sys.stdin.read().strip()
 
-status, log_file = config.find_entry(config_file, "status", "file")
+status, log_file = config.find_entry("status", "file")
 if status != 0:
-    print("Cannot find status::file in", config_file, file=sys.stderr)
+    print("Cannot find status::file in", config.file_name, file=sys.stderr)
     sys.exit(status)
 
 with open(log_file, 'a') as log:
-    log.write("{:%Y-%m-%dT%H:%M:%S} {} {}\n".format(datetime.datetime.now(), subject, content))
+    log.write(str(entry) + "\n")

@@ -2,33 +2,49 @@
 
 import argparse
 import configparser
+from pathlib import Path
 import os
 import sys
 
-def get_config(config_file):
-    ini_obj = configparser.ConfigParser()
-    if not os.path.exists(config_file):
-        return None
-    ini_obj.read(config_file)
-    return ini_obj
+class Config:
+    def basedir():
+        return Path.home() / '.config' / 'backup'
+    
+    def __init__(self, filename):
+        if isinstance(filename, str):
+            filename = Path(filename)
+        if not filename.is_absolute():
+            filename = Config.basedir() / filename
+        ini_obj = configparser.ConfigParser()
+        if not filename.exists():
+            ini_obj = None
+        else:
+            ini_obj.read(str(filename))
+        self.configuration = ini_obj
 
-def find_entry(filename, section, key, doesfileexist=False, default=None):
-    configuration = get_config(filename)
-    if configuration is None:
-        return 127, None
-    if doesfileexist:
-        return 0, None
-    if configuration.has_option(section, key):
-        return 0, configuration[section][key]
-    if default is not None:
-        return 0, default
-    print("entry {}::{} not found".format(section, key), file=sys.stderr)
-    return 1, None
+    def find_entry(self, section, key, doesfileexist=False, default=None):
+        if self.configuration is None:
+            return 127, None
+        if doesfileexist:
+            return 0, None
+        if self.configuration.has_option(section, key):
+            return 0, self.configuration[section][key]
+        if default is not None:
+            return 0, default
+        print("entry {}::{} not found".format(section, key), file=sys.stderr)
+        return 1, None
 
-def find_entry_args(args):
-    if args.emptydefault:
-        args.default = ""
-    return find_entry(args.file, args.section, args.key, args.doesfileexist, args.default)
+    def find(self, section, key, default):
+        result = self.find_entry(section, key, False, default)
+        if result[0] != 0:
+            raise Exception("Bad config")
+        return result[1]
+
+    def find_entry_args(args):
+        if args.emptydefault:
+            args.default = ""
+        return self.find_entry(args.section, args.key, args.doesfileexist, args.default)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Returns configuration parameters')
@@ -39,7 +55,8 @@ if __name__ == "__main__":
     parser.add_argument('--default', required=False, help='Return this string if no entry found')
     parser.add_argument('--doesfileexist', required=False, default=False, action='store_true', help='Exit 0 if config file exists, 127 otherwise.')
     args = parser.parse_args()
-    status, data = find_entry_args(args)
+    cobj = Config(args.file)
+    status, data = cobj.find_entry_args(args)
     if data is not None:
         print(data)
     sys.exit(status)

@@ -1,0 +1,130 @@
+#!/usr/bin/python3
+
+import argparse
+import datetime
+from email.message import EmailMessage
+import gnupg
+from pathlib import Path
+from smtplib import SMTP
+import sys
+
+from config import Config
+import log
+
+parser = argparse.ArgumentParser(description='Analyses log entries and reports via mail')
+parser.add_argument('--config', required=True, help='Configuration source')
+args = parser.parse_args()
+
+config = Config(args.config)
+log_obj = log.Log(config.find('status', 'file', ''), 'r')
+
+warn_missing_success = config.find("status", "warn_missing", 9)
+
+error_log = {
+    'NOTIFY': [],
+    'WARN': [],
+    'ERR': []
+    }
+
+now = datetime.datetime.now()
+warn_missing_since = now - datetime.timedelta(days = int(warn_missing_success))
+last_success = log_obj.find(subject="SUCCESS", action='last')
+if last_success is None:
+    last_success = log.LogEntry(
+        "Es wurde noch nie ein erfolgreiches Backup gemacht",
+        "NEVER"
+    )
+elif last_success.date < warn_missing_since:
+    msg = """
+        Das letzte erfolgreiche Backup ist länger als {} Tage her (es wurde um
+        {:%H:%M Uhr am %d.%m.%Y} beendet). Nach dieser Zeitspanne erhälst du
+        diese Warnung, weil wir sichergehen wollen, dass ein ausbleibendes
+        Backup nicht bedeutet, dass etwas kaputt ist.
+        """.format(
+            warn_missing_success,
+            last_success.date
+        )
+    last_start = log_obj.find(subject="START", since=last_success.date, action='last')
+    if last_start is not None:
+        msg += """\n\nDas letzte angefangende Backup war vor {} Tagen.""".format(
+            (now - last_start.date).days
+        )
+    else:
+        msg += "\n\nSeit dem letzten erfolgreichen Backup wurde kein weiteres gestartet."
+    last_success.content = msg.strip().replace('\n', "\\n")
+    error_log['WARN'].append(last_success)
+
+last_analysis = log_obj.find(subject="ANALYSE", action='last')
+if last_analysis is None:
+    last_analysis = datetime.datetime.min
+else:
+    last_analysis = last_analysis.date
+
+for entry in log_obj.find(since=last_analysis, action='list'):
+    if entry.subject in ('ABORT', 'ANALYSE', 'START', 'SUCCESS'):
+        continue
+    error_log['ERR'].append(entry)
+
+totcount = 0
+for cat in error_log:
+    totcount += len(error_log[cat])
+
+if totcount == 0 or totcount == len(error_log['NOTIFY']):
+    # nothing to report: yee-hah!
+    sys.exit(0)
+
+mail_message = """
+{}
+
+Die Analyse der letzten Backups hat {} Meldung(en) gefunden:
+
+""".format(
+    config.find('mail', 'opening', "Hallo"),
+    totcount
+)
+
+for cat in error_log:
+    if len(error_log[cat]) == 0:
+        continue
+    mail_message += " - {} {}\n".format(
+        len(error_log[cat]),
+        config.find('category_headlines', cat, cat)
+    )
+
+mail_message += "\n"
+
+for cat in ('ERR', 'WARN', 'NOTIFY'):
+    if len(error_log[cat]) == 0:
+        continue
+    mail_message += "###### {:s} #####\n".format(
+        config.find('category_headlines', cat, cat).upper()
+    )
+    for ele in error_log[cat]:
+        mail_message += ele.long_text(prefix='* ')
+
+mail_message += config.find('mail', 'closing', 'Bye')
+mail_message += "\n"
+
+key = config.find('mail', 'sign', 'No')
+mail_message = mail_message.strip()
+if key[0:2] == '0x':
+    gpg = gnupg.GPG()
+    mail_message = str(gpg.sign(mail_message, clearsign=True, keyid=key))
+
+mailprg = config.find('mail', 'type', "echo")
+if mailprg == 'mail':
+    msg = EmailMessage()
+    msg.set_default_type("text/plain; charset=utf-8")
+    msg.set_content(mail_message)
+    msg['To'] = config.find('mail', 'email', 'backup-user@localhost')
+    msg['From'] = config.find('mail', 'sender', 'backup-user@localhost')
+    msg['Subject'] = config.find('mail', 'subject', 'Backup Script')
+    with SMTP('localhost') as s:
+        try:
+            s.send_message(msg)
+            sys.exit(0)
+        except:
+            print(msg)
+            sys.exit(2)
+
+print(mail_message)
