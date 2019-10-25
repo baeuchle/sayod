@@ -31,7 +31,7 @@ now = datetime.datetime.now()
 warn_missing_since = now - datetime.timedelta(days = int(warn_missing_success))
 last_success = log_obj.find(subject="SUCCESS", action='last')
 if last_success is None:
-    last_success = log.LogEntry(
+    last_success = LogEntry(
         "Es wurde noch nie ein erfolgreiches Backup gemacht",
         "NEVER"
     )
@@ -60,9 +60,16 @@ if last_analysis is None:
     last_analysis = datetime.datetime.min
 else:
     last_analysis = last_analysis.date
+log_obj.append(LogEntry("ANALYSE"))
 
 for entry in log_obj.find(since=last_analysis, action='list'):
-    if entry.subject in ('ABORT', 'ANALYSE', 'START', 'SUCCESS'):
+    if entry.subject in (
+        'ABORT',
+        'ANALYSE',
+        'MAIL',
+        'START',
+        'SUCCESS'
+            ):
         continue
     error_log['ERR'].append(entry)
 
@@ -124,9 +131,10 @@ if mailprg == 'mail':
     with SMTP('localhost') as s:
         try:
             s.send_message(msg)
-        except:
-            print(msg)
+        except BaseException as be:
+            log_obj.append(LogEntry(str(be), "NOMAIL"))
             sys.exit(2)
+    log_obj.append(LogEntry(msg['To'], "MAIL"))
     sys.exit(0)
 
 print(mail_message)
