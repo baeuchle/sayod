@@ -3,7 +3,7 @@
 import datetime
 from textwrap import TextWrapper
 
-class LogEntry:
+class TaggedEntry:
     timeformat = '%Y-%m-%dT%H:%M:%S'
 
     def __init__(self, content, subject=None, date=None):
@@ -20,7 +20,7 @@ class LogEntry:
             else:
                 # at least three words:
                 try:
-                    self.date = datetime.datetime.strptime(words[0], LogEntry.timeformat) 
+                    self.date = datetime.datetime.strptime(words[0], TaggedEntry.timeformat)
                     self.subject = words[1]
                     if len(words) > 2:
                         self.content = ' '.join(words[2:])
@@ -37,7 +37,7 @@ class LogEntry:
         return
 
     def __str__(self):
-        return ("{:" + LogEntry.timeformat + "} {} {}").format(
+        return ("{:" + TaggedEntry.timeformat + "} {} {}").format(
             self.date,
             self.subject.upper(),
             self.content.replace("\n", '\\n'))
@@ -46,7 +46,7 @@ class LogEntry:
         opts = { 'linestart': '',
                  'prefix': '',
                  'linelength': 72,
-                 'dateformat': LogEntry.timeformat,
+                 'dateformat': TaggedEntry.timeformat,
                }
         if kwargs is not None:
             for key, val in kwargs.items():
@@ -66,7 +66,7 @@ class LogEntry:
             result += "\n\n"
         return result
 
-class Log:
+class TaggedLog:
     def __init__(self, log_file, mode='r'):
         self.log_file = log_file
         if self.log_file == "":
@@ -82,7 +82,7 @@ class Log:
         return self
 
     def __next__(self):
-        return LogEntry(next(self.file_obj))
+        return TaggedEntry(next(self.file_obj))
 
     def _find(self, **kwargs):
         opts = { 'subjects': [],

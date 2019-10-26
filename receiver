@@ -3,7 +3,7 @@
 import sys
 
 from config import Config
-from log import LogEntry, Log
+from taggedlog import TaggedEntry
 
 line = sys.stdin.readline().strip()
 content_type = "text/x-plain-log"
@@ -17,7 +17,7 @@ if not content_type == "text/x-plain-log":
 
 
 config = Config(line)
-entry = LogEntry("")
+entry = TaggedEntry("")
 
 for line in sys.stdin:
     if line.strip() == "":

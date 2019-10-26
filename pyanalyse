@@ -9,15 +9,14 @@ from smtplib import SMTP
 import sys
 
 from config import Config
-from log import LogEntry
-from log import Log
+from taggedlog import *
 
 parser = argparse.ArgumentParser(description='Analyses log entries and reports via mail')
 parser.add_argument('--config', required=True, help='Configuration source')
 args = parser.parse_args()
 
 config = Config(args.config)
-log_obj = Log(config.find('status', 'file', ''), 'a+')
+log_obj = TaggedLog(config.find('status', 'file', ''), 'a+')
 
 warn_missing_success = config.find("status", "warn_missing", 9)
 
@@ -31,7 +30,7 @@ now = datetime.datetime.now()
 warn_missing_since = now - datetime.timedelta(days = int(warn_missing_success))
 last_success = log_obj.find(subject="SUCCESS", action='last')
 if last_success is None:
-    last_success = LogEntry(
+    last_success = TaggedEntry(
         "Es wurde noch nie ein erfolgreiches Backup gemacht",
         "NEVER"
     )
@@ -131,9 +130,9 @@ if mailprg == 'mail':
         try:
             s.send_message(msg)
         except BaseException as be:
-            log_obj.append(LogEntry(str(be), "NOMAIL"))
+            log_obj.append(TaggedEntry(str(be), "NOMAIL"))
             sys.exit(2)
-    log_obj.append(LogEntry(msg['To'], "MAIL"))
+    log_obj.append(TaggedEntry(msg['To'], "MAIL"))
     sys.exit(0)
 
 print(mail_message)
