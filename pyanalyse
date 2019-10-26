@@ -55,12 +55,11 @@ elif last_success.date < warn_missing_since:
     last_success.content = msg.strip().replace('\n', "\\n")
     error_log['WARN'].append(last_success)
 
-last_analysis = log_obj.find(subject="ANALYSE", action='last')
+last_analysis = log_obj.find(subjects=["ANALYSE", "MAIL"], action='last')
 if last_analysis is None:
     last_analysis = datetime.datetime.min
 else:
     last_analysis = last_analysis.date
-log_obj.append(LogEntry("ANALYSE"))
 
 for entry in log_obj.find(since=last_analysis, action='list'):
     if entry.subject in (
