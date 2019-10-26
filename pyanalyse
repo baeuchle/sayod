@@ -3,8 +3,7 @@
 import argparse
 import datetime
 from email.message import EmailMessage
-import gnupg
-from pathlib import Path
+from gnupg import GPG
 from smtplib import SMTP
 import sys
 
@@ -114,7 +113,7 @@ mail_message += "\n"
 key = config.find('mail', 'sign', 'No')
 mail_message = mail_message.strip()
 if key[0:2] == '0x':
-    gpg = gnupg.GPG()
+    gpg = GPG()
     gpg.encoding = 'utf-8'
     mail_message = str(gpg.sign(mail_message, clearsign=True, keyid=key))
 
