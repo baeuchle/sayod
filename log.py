@@ -85,7 +85,7 @@ class Log:
         return LogEntry(next(self.file_obj))
 
     def _find(self, **kwargs):
-        opts = { 'subject': '',
+        opts = { 'subjects': [],
                  'ret': 'entry',
                  'action': 'list',
                  'since': datetime.datetime.min,
@@ -94,6 +94,8 @@ class Log:
         if kwargs is not None:
             for key, val in kwargs.items():
                 opts[key] = val
+            if 'subject' in kwargs:
+                opts['subjects'].append(kwargs['subject'])
         result = []
         if opts['action'] == 'last':
             result = None
@@ -104,7 +106,7 @@ class Log:
                 continue
             if opts['until'] < entry.date:
                 continue
-            if not opts['subject'] and opts['subject'] != "" and entry.subject != opts['subject']:
+            if len(opts['subjects']) != 0 and not entry.subject in opts['subjects']:
                 continue
             # we've got a match!
             if opts['action'] == 'count':
