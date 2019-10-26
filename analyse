@@ -9,6 +9,7 @@ import sys
 
 from config import Config
 from taggedlog import *
+import gitversion
 
 parser = argparse.ArgumentParser(description='Analyses log entries and reports via mail')
 parser.add_argument('--config', required=True, help='Configuration source')
@@ -108,7 +109,7 @@ for cat in ('ERR', 'WARN', 'NOTIFY'):
         mail_message += ele.long_text(prefix='* ')
 
 mail_message += config.find('mail', 'closing', 'Bye')
-mail_message += "\n"
+mail_message += "\n\n--\nErstellt mit Version: " + gitversion.describe() + "\n"
 
 key = config.find('mail', 'sign', 'No')
 mail_message = mail_message.strip()
