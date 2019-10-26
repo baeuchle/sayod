@@ -1,174 +1,137 @@
-#!/bin/bash
+#!/usr/bin/python3
 
-exec_dir=$(dirname $0)
-msg_dir=$(mktemp -d)
+import argparse
+import datetime
+from email.message import EmailMessage
+from gnupg import GPG
+from smtplib import SMTP
+import sys
 
-function get_seconds {
-    curr_date="$*"
-    if [ "$curr_date" == "" ]; then
-        date +%s
-        return
-    fi
-    date +%s -d "$curr_date"
-}
+from config import Config
+from taggedlog import *
 
-function days_in_past {
-    curr_date="$*"
-    curr_seconds=$(get_seconds "$curr_date")
-    now_seconds=$(get_seconds)
-    echo $(( ($now_seconds - $curr_seconds) / (24 * 60 * 60) ))
-}
+parser = argparse.ArgumentParser(description='Analyses log entries and reports via mail')
+parser.add_argument('--config', required=True, help='Configuration source')
+args = parser.parse_args()
 
-function errorlog {
-    category=$1
-    shift
-    count=$(ls $msg_dir/* 2>/dev/null | wc -l)
-    next_count=$(( ($count + 1) ))
-    echo "* $*\n" | sed 's/\\n/\n/g' | fold -w 72 -s > $msg_dir/$next_count.$category
-}
+config = Config(args.config)
+log_obj = TaggedLog(config.find('status', 'file', ''), 'a+')
 
-function report_all_messages {
-    noti=$(ls $msg_dir/*.NOTIFY 2>/dev/null | wc -l)
-    warn=$(ls $msg_dir/*.WARN   2>/dev/null | wc -l)
-    errs=$(ls $msg_dir/*.ERR    2>/dev/null | wc -l)
-    alls=$(ls $msg_dir/*        2>/dev/null | wc -l)
-    if [ $alls -eq 0 ]; then
-        rmdir $msg_dir
-        exit 0;
-    fi
-    mailfile=$(mktemp)
-    cat >> $mailfile <<EOF
-$($config --section mail --key opening --default Hello)
+warn_missing_success = config.find("status", "warn_missing", 9)
 
-Die Analyse der letzten Backups hat $alls Meldung(en) gefunden:
-EOF
-    if [ $noti -gt 0 ]; then
-        echo " - $noti Information(en)" >> $mailfile
-    fi
-    if [ $warn -gt 0 ]; then
-        echo " - $warn Warnung(en)" >> $mailfile
-    fi
-    if [ $errs -gt 0 ]; then
-        echo " - $errs Fehler" >> $mailfile
-    fi
-    echo "" >> $mailfile
-    if [ $errs -gt 0 ]; then
-        echo "##### FEHLER #####" >> $mailfile
-        echo "" >> $mailfile
-        sed 's/\\n/\n/g' $msg_dir/*.ERR >> $mailfile
-        echo "">> $mailfile
-    fi
-    if [ $warn -gt 0 ]; then
-        echo "##### WARNUNGEN #####" >> $mailfile
-        echo "" >> $mailfile
-        sed 's/\\n/\n/g' $msg_dir/*.WARN >> $mailfile
-        echo "">> $mailfile
-    fi
-    if [ $noti -gt 0 ]; then
-        echo "##### INFORMATIONEN #####" >> $mailfile
-        echo "" >> $mailfile
-        sed 's/\\n/\n/g' $msg_dir/*.NOTIFY >> $mailfile
-        echo "">> $mailfile
-    fi
+error_log = {
+    'NOTIFY': [],
+    'WARN': [],
+    'ERR': []
+    }
 
-    echo $($config --section mail --key closing --default Bye) >> $mailfile
-    key=$($config --section mail --key sign --default No)
-    if [[ $key == 0x* ]]; then
-        gpg --armor --clearsign --local-user $key> $mailfile.asc < $mailfile
-        mv $mailfile.asc $mailfile
-    fi
-    email=$($config --section mail --key email --emptydefault)
-    if [[ -z "$email" ]]; then
-        email="backup-user@localhost"
-    fi
-    mailprg=$($config --section mail --key cmd --default echo)
-    $mailprg --content-type="text/plain; charset=\"utf-8\"" -s "$($config --section mail --key subject --default Backup\ Script)" $email < $mailfile
-    if [[ "$mailprg" == "echo" ]]; then
-        cat $mailfile
-    fi
-    rm $mailfile
-    rm -rf $msg_dir
-    if [ -w "$logfile" ]; then
-        msgdate="$(date +%Y-%m-%dT%H:%M:%S)"
-        echo "$msgdate ANALYSE $config_dir$rc" >> $logfile
-    fi
-}
-trap report_all_messages EXIT
+now = datetime.datetime.now()
+warn_missing_since = now - datetime.timedelta(days = int(warn_missing_success))
+last_success = log_obj.find(subject="SUCCESS", action='last')
+if last_success is None:
+    last_success = TaggedEntry(
+        "Es wurde noch nie ein erfolgreiches Backup gemacht",
+        "NEVER"
+    )
+elif last_success.date < warn_missing_since:
+    msg = """
+        Das letzte erfolgreiche Backup ist länger als {} Tage her (es wurde um
+        {:%H:%M Uhr am %d.%m.%Y} beendet). Nach dieser Zeitspanne erhälst du
+        diese Warnung, weil wir sichergehen wollen, dass ein ausbleibendes
+        Backup nicht bedeutet, dass etwas kaputt ist.
+        """.format(
+            warn_missing_success,
+            last_success.date
+        )
+    last_start = log_obj.find(subject="START", since=last_success.date, action='last')
+    if last_start is not None:
+        msg += """\n\nDas letzte angefangende Backup war vor {} Tagen.""".format(
+            (now - last_start.date).days
+        )
+    else:
+        msg += "\n\nSeit dem letzten erfolgreichen Backup wurde kein weiteres gestartet."
+    last_success.content = msg.strip().replace('\n', "\\n")
+    error_log['WARN'].append(last_success)
 
-config_dir="$($exec_dir/config_dir)"
-if [ "$?" -ne "0" ] || [ -z "$config_dir" ]; then
-    errorlog ERR "Kann Konfigurationsverzeichnis nicht bestimmen"
-    exit 127;
-fi
-rc=analyse.rc
-while [ $# -gt 0 ]; do
-    case "$1" in
-        --config)
-            shift;
-            if [[ ! -z "$1" ]]; then
-                rc=$1
-            fi
-            shift;
-        ;;
-        *)
-            shift;
-        ;;
-    esac
-done
-config="$exec_dir/config.py --file $config_dir$rc"
-if ! $config --doesfileexist --section a --key b; then
-    errorlog ERR "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei nicht gefunden"
-    exit 127;
-fi
+last_analysis = log_obj.find(subjects=["ANALYSE", "MAIL"], action='last')
+if last_analysis is None:
+    last_analysis = datetime.datetime.min
+else:
+    last_analysis = last_analysis.date
 
-logfile=$($config --section status --key file --emptydefault)
-if [ -z "$logfile" ]; then
-    errorlog ERR "Kann Statusdateiname status::file nicht bestimmen"
-    exit 127;
-fi
-if [ ! -r "$logfile" ]; then
-    errorlog NOTIFY "Kann Statusdatei\
-    $logfile\
-    nicht finden. Vielleicht wurde noch nie ein Backup erstellt?"
-    exit 63
-fi
-wm=$($config --section status --key warn_missing --default 7)
-last_success="$(grep ' SUCCESS ' $logfile | tail -n 1 | awk '{print $1}')"
-last_diff=$(days_in_past $last_success)
-last_start=$(days_in_past "$(grep ' START ' $logfile | tail -n 1 | awk '{print $1}')")
-if [[ $last_diff -gt $wm ]]; then
-    errorlog WARN "
-        Das letzte erfolgreiche Backup ist länger als $wm Tage her (es
-        wurde bei $last_success beendet). Nach dieser Zeitspanne erhälst
-        du diese Warnung, weil wir sichergehen wollen, dass ein
-        ausbleibendes Backup nicht bedeutet, dass etwas kaputt ist.
-        Das letzte angefangende Backup war vor $last_start Tagen.
-"
-fi
+for entry in log_obj.find(since=last_analysis, action='list'):
+    if entry.subject in (
+        'ABORT',
+        'ANALYSE',
+        'MAIL',
+        'START',
+        'SUCCESS'
+            ):
+        continue
+    error_log['ERR'].append(entry)
 
-last_analysis=$(get_seconds "$(grep ' ANALYSE ' $logfile | tail -n 1 | awk '{print $1}')")
-if [ -z "$last_analysis" ]; then
-    last_analysis=0
-fi
+totcount = 0
+for cat in error_log:
+    totcount += len(error_log[cat])
 
-cat $logfile | while read -r line; do
-    line_date=${line/ */}
-    line_seconds=$(get_seconds $line_date)
-    if [[ $line_seconds -gt $last_analysis ]]; then
-        line_level=$(awk '{print $2}' <<<$line)
-        line_msg=$(cut -d' ' -f3- <<<$line)
-        case $line_level in
-            ABORT)
-            ;;
-            ANALYSE)
-            ;;
-            START)
-            ;;
-            SUCCESS)
-            ;;
-            *)
-                errorlog ERR "$line_date ($line_level)\n$line_msg"
-            ;;
-        esac
-    fi
-done
+if totcount == 0 or totcount == len(error_log['NOTIFY']):
+    # nothing to report: yee-hah!
+    sys.exit(0)
+
+mail_message = """
+{}
+
+Die Analyse der letzten Backups hat {} Meldung(en) gefunden:
+
+""".format(
+    config.find('mail', 'opening', "Hallo"),
+    totcount
+)
+
+for cat in error_log:
+    if len(error_log[cat]) == 0:
+        continue
+    mail_message += " - {} {}\n".format(
+        len(error_log[cat]),
+        config.find('category_headlines', cat, cat)
+    )
+
+mail_message += "\n"
+
+for cat in ('ERR', 'WARN', 'NOTIFY'):
+    if len(error_log[cat]) == 0:
+        continue
+    mail_message += "###### {:s} #####\n".format(
+        config.find('category_headlines', cat, cat).upper()
+    )
+    for ele in error_log[cat]:
+        mail_message += ele.long_text(prefix='* ')
+
+mail_message += config.find('mail', 'closing', 'Bye')
+mail_message += "\n"
+
+key = config.find('mail', 'sign', 'No')
+mail_message = mail_message.strip()
+if key[0:2] == '0x':
+    gpg = GPG()
+    gpg.encoding = 'utf-8'
+    mail_message = str(gpg.sign(mail_message, clearsign=True, keyid=key))
+
+mailprg = config.find('mail', 'type', "echo")
+if mailprg == 'mail':
+    msg = EmailMessage()
+    msg.set_default_type("text/plain; charset=utf-8")
+    msg.set_content(mail_message)
+    msg['To'] = config.find('mail', 'email', 'backup-user@localhost')
+    msg['From'] = config.find('mail', 'sender', 'backup-user@localhost')
+    msg['Subject'] = config.find('mail', 'subject', 'Backup Script')
+    with SMTP('localhost') as s:
+        try:
+            s.send_message(msg)
+        except BaseException as be:
+            log_obj.append(TaggedEntry(str(be), "NOMAIL"))
+            sys.exit(2)
+    log_obj.append(TaggedEntry(msg['To'], "MAIL"))
+    sys.exit(0)
+
+print(mail_message)
