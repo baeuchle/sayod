@@ -1,0 +1,3 @@
+[submodule "taggedlog"]
+	path = taggedlog
+	url = git@frankfurtium.de:pylib/taggedlog.git
