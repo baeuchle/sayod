@@ -64,6 +64,7 @@ for entry in log_obj.find(since=last_analysis, action='list'):
     if entry.subject in (
         'ABORT',
         'ANALYSE',
+        'DEADTIME',
         'MAIL',
         'START',
         'SUCCESS'

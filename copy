@@ -18,7 +18,7 @@ function ask_provide {
     timeout=$1;
     shift;
     question="$*"
-    zenity --question --timeout=$timeout --text="$question"
+    zenity --question --timeout=$timeout --title "Backup ${rc/.rc/}" --text="$question"
     case "$?" in
         0)
             return 0
@@ -70,6 +70,20 @@ function cleanup {
 }
 trap cleanup EXIT
 
+function readlog {
+    loghost=$($config --section notify --key host --default localhost)
+    loguser=$($config --section notify --key user --default $LOGNAME)
+    logremote=$($config --section notify --key remotekey --default $rc)
+    logmsg="content-type: text/x-plain-ask\n$logremote\nSUCCESS\n\nlast"
+    echo -e "$logmsg" | ssh $loguser@$loghost logreader | awk '{print $1}'
+    if [ $? -ne 0 ]; then
+        notify-send -u low -t 3000 "Backup-Fehler ${rc/.rc/}" "Kann entferntes Log nicht lesen"
+        echo "0"
+        return 1
+    fi
+    return 0
+}
+
 function notify {
     msgdate="$(date +%Y-%m-%dT%H:%M:%S)"
     msg=""
@@ -81,6 +95,12 @@ function notify {
             urgency="normal"
             head="Backup abgebrochen"
             timeout="10000"
+        ;;
+        DEADTIME)
+            subject="DEADTIME"
+            urgency="low"
+            head="Backup: Braucht noch nicht wieder"
+            timeout="2000"
         ;;
         FAIL) # Fehler beim Ausführen
             subject="FAIL"
@@ -156,6 +176,16 @@ config="$exec_dir/config.py --file $config_dir$rc"
 if ! $config --doesfileexist --section a --key b; then
     notify FATAL "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei $config_dir$rc nicht gefunden"
     exit 127;
+fi
+
+deadtime=$($config --section source --key deadtime --default 0)
+if [ $deadtime -gt 0 ]; then
+    last_success=$(date +%s -d $(readlog SUCCESS last))
+    tage=$(( ($(date +%s) - $last_success) / 86400 ))
+    if [ $tage -lt $deadtime ]; then
+        notify DEADTIME "Letztes erfolgreiches Backup war vor weniger als $deadtime Tagen"
+        exit 0;
+    fi
 fi
 
 notify START "Starte Backup"
