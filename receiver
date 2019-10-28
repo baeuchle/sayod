@@ -11,8 +11,19 @@ if line.startswith("content-type: "):
     content_type = line[len("content-type: "):]
     line = sys.stdin.readline().strip()
 
-config = Config(line)
+try:
+    config = Config(line, fail_on_missing_file=True)
+except FileNotFoundError as fnfe:
+    print("{} {}".format(fnfe.strerror, fnfe.filename), file=sys.stderr)
+    sys.exit(1)
 entry = FromStream(sys.stdin, content_type)
 
-log_obj = TaggedLog(config.find('status', 'file', ''), 'a+')
+try:
+    status_file = config.find('status', 'file', '')
+except BaseException as be:
+    print("Status file cannot be determined:", str(be), file=sys.stderr)
+    sys.exit(1)
+
+log_obj = TaggedLog(status_file, 'a+')
 log_obj.append(entry)
+sys.exit(0)

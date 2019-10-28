@@ -119,9 +119,13 @@ function notify {
     loghost=$($config --section notify --key host --default localhost)
     loguser=$($config --section notify --key user --default $USER)
     logpipe=$($config --section notify --key pipe --emptydefault)
-    logmsg="content-type: text/x-plain-log\n$rc\n$subject\n$msg"
+    logremote=$($config --section notify --key remotekey --default $rc)
+    logmsg="content-type: text/x-plain-log\n$logremote\n$subject\n$msg"
     if [ "$logpipe" == "yes" ]; then
         echo -e "$logmsg" | ssh $loguser@$loghost receiver
+        if [ $? -ne 0 ]; then
+            notify-send -u critical -t 3600000 "Backup-Fehler" "Kann Meldungen nicht auf dem Server schreiben"
+        fi
     else
         echo "$logmsg"
     fi
