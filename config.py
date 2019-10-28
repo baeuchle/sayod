@@ -2,6 +2,7 @@
 
 import argparse
 import configparser
+import errno
 from pathlib import Path
 import os
 import sys
@@ -10,13 +11,15 @@ class Config:
     def basedir():
         return Path.home() / '.config' / 'backup'
     
-    def __init__(self, filename):
+    def __init__(self, filename, **kwargs):
         if isinstance(filename, str):
             filename = Path(filename)
         if not filename.is_absolute():
             filename = Config.basedir() / filename
         ini_obj = configparser.ConfigParser()
         if not filename.exists():
+            if kwargs.get("fail_on_missing_file", False):
+                raise FileNotFoundError(errno.ENOENT, "Configuration file not found", str(filename))
             ini_obj = None
         else:
             ini_obj.read(str(filename))
@@ -37,7 +40,7 @@ class Config:
     def find(self, section, key, default):
         result = self.find_entry(section, key, False, default)
         if result[0] != 0:
-            raise Exception("Bad config")
+            raise Exception("{}::{} cannot be found in config: {}".format(section, key, str(result[0])))
         return result[1]
 
     def find_entry_args(self, args):
