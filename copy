@@ -65,7 +65,9 @@ function cleanup {
         rm "$rsyncerrfile"
     fi
     if [ -f "$rsynclogfile" ]; then
-        rm "$rsynclogfile"
+        if [[ $rsynclogfile == /tmp/* ]]; then
+            rm "$rsynclogfile"
+        fi
     fi
 }
 trap cleanup EXIT
@@ -178,7 +180,7 @@ if ! $config --doesfileexist --section a --key b; then
     exit 127;
 fi
 
-deadtime=$($config --section source --key deadtime --default 0)
+deadtime=$($config --section rsync --key deadtime --default 0)
 if [ $deadtime -gt 0 ]; then
     last_success=$(date +%s -d $(readlog SUCCESS last))
     tage=$(( ($(date +%s) - $last_success) / 86400 ))
@@ -230,20 +232,23 @@ for part in target source; do
     fi
 done
 
-privilege=$($config --section source --key privilege --emptydefault)
+privilege=$($config --section rsync --key privilege --emptydefault)
 if [[ "$privilege" -ne "sudo" ]]; then
     privilege=""
 fi
-no_cross=$($config --section source --key no_cross --emptydefault)
+no_cross=$($config --section rsync --key no_cross --emptydefault)
 if [[ "$no_cross" -ne "-x" ]]; then
     no_cross=""
 fi
-rsynclogfile=$(mktemp)
+rsynclogfile=$(date +"$($config --section rsync --key outfile --emptydefault)")
+if [[ -z "$rsynclogfile" ]]; then
+    rsynclogfile=$(mktemp)
+fi
 rsyncerrfile=$(mktemp)
 $privilege \
-rsync --partial -va \
+rsync --partial -via \
         $no_cross \
-        --exclude-from=$exclude_file \
+        --exclude-from="$exclude_file" \
         $source \
         $target \
         > $rsynclogfile \
@@ -256,10 +261,10 @@ errlines=$(wc -l < $rsyncerrfile)
 err_in_one_line=$(awk 1 ORS='\\n' "$rsyncerrfile")
 case $rsync_error in
     0)
-        notify SUCCESS "$err_in_one_line";
+        notify SUCCESS "output in $rsynclogfile\\n$err_in_one_line";
         exit 0;;
     23|24)
-        notify SUCCESS "Nicht alle Quelldateien konnten gelesen werden\\n$err_in_one_line";
+        notify SUCCESS "Nicht alle Quelldateien konnten gelesen werden\\n$rsynclogfile\\n$err_in_one_line";
         exit 0;;
     20)
         notify ABORT "Kopiervorgang abgebrochen $loglines/$errlines Zeilen\\n$err_in_one_line";
