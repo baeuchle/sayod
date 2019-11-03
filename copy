@@ -160,6 +160,7 @@ if [ "$?" -ne "0" ] || [ -z "$config_dir" ]; then
 fi
 
 rc=rc.ini
+force=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --config)
@@ -168,6 +169,10 @@ while [ $# -gt 0 ]; do
                 rc=$1
             fi
             shift;
+        ;;
+        --force)
+            shift;
+            force="yes"
         ;;
         *)
             shift;
@@ -184,7 +189,7 @@ deadtime=$($config --section rsync --key deadtime --default 0)
 if [ $deadtime -gt 0 ]; then
     last_success=$(date +%s -d $(readlog SUCCESS last))
     tage=$(( ($(date +%s) - $last_success) / 86400 ))
-    if [ $tage -lt $deadtime ]; then
+    if [ $tage -lt $deadtime ] && [ -z "$force" ]; then
         notify DEADTIME "Letztes erfolgreiches Backup war vor weniger als $deadtime Tagen"
         exit 0;
     fi
