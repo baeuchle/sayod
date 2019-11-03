@@ -31,7 +31,9 @@ for line in sys.stdin:
         break
     subject_list.append(line.strip())
 
-action = next(sys.stdin).strip()
+action = 'list'
+for line in sys.stdin:
+    action = line.strip()
 
 log_obj = TaggedLog(status_file, 'a+')
 entries = log_obj.find(subjects=subject_list, action=action)
