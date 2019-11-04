@@ -2,7 +2,7 @@
 
 exec_dir=$(dirname $0)
 if [ "$(which notify-send)" == "" ]; then
-    echo "Kann notify-send nicht finden, bitte installieren";
+    echo "Kann notify-send nicht finden, bitte installieren" >&2
     exit 127
 fi
 
@@ -12,6 +12,13 @@ export XDG_RUNTIME_DIR=/run/user/$(id -u)
 if [ -z "$DISPLAY" ]; then
     export DISPLAY=:0.0
 fi
+
+function verbose_echo {
+    if [ -z "$verbose" ]; then
+        return
+    fi
+    echo -e "$(sed 's/\\n/\n/g' <<<$* | fold -w 36 -s)"
+}
 
 # may be used as provide script if user interaction is required.
 function ask_provide {
@@ -139,6 +146,8 @@ function notify {
     esac
     msg="$* $msg"
     notify-send -u $urgency -t $timeout "$head" "$(sed 's/\\n/\n/g' <<<$msg | fold -w 36 -s)"
+    verbose_echo "NOTIFY-SEND $head"
+    verbose_echo $msg
     loghost=$($config --section notify --key host --default localhost)
     loguser=$($config --section notify --key user --default $LOGNAME)
     logpipe=$($config --section notify --key pipe --emptydefault)
@@ -147,7 +156,11 @@ function notify {
     if [ "$logpipe" == "yes" ]; then
         echo -e "$logmsg" | ssh $loguser@$loghost receiver
         if [ $? -ne 0 ]; then
-            notify-send -u critical -t 3600000 "Backup-Fehler $friendly_rc" "Kann Meldungen nicht auf dem Server schreiben ($?)"
+            head="Backup-Fehler $friendly_rc"
+            msg="Kann Meldungen nicht auf dem Server schreiben ($?)"
+            notify-send -u critical -t 3600000 "$head" "$msg"
+            verbose_echo "NOTIFY-SEND $head"
+            verbose_echo $msg
         fi
     else
         echo "$logmsg"
@@ -175,6 +188,10 @@ while [ $# -gt 0 ]; do
             shift;
             force="yes"
         ;;
+        -v)
+            shift;
+            verbose=1
+        ;;
         *)
             shift;
         ;;
@@ -183,9 +200,10 @@ done
 config=""
 stripped_rc=${rc/.rc}
 stripped_rc=${stripped_rc/.ini}
-for rc_variant in $rc $rc.rc $rc.ini; do
+for rc_variant in $rc $stripped_rc.rc $stripped_rc.ini; do
     config="$exec_dir/config.py --file $config_dir$rc_variant"
     if $config --doesfileexist --section a --key b; then
+        verbose_echo "Config file $rc_variant found"
         break
     fi
 done
@@ -194,15 +212,23 @@ if [ -z "$config" ]; then
     exit 127;
 fi
 friendly_rc=$($config --section notify --key friendly_name --default $stripped_rc)
+verbose_echo "Friendly name $friendly_rc"
 
 deadtime=$($config --section rsync --key deadtime --default 0)
 if [ $deadtime -gt 0 ]; then
     last_success=$(date +%s -d $(readlog SUCCESS last))
     tage=$(( ($(date +%s) - $last_success) / 86400 ))
-    if [ $tage -lt $deadtime ] && [ -z "$force" ]; then
-        notify DEADTIME "Letztes erfolgreiches Backup war vor weniger als $deadtime Tagen"
-        exit 0;
+    if [ $tage -lt $deadtime ]; then
+        if [ -z "$force" ]; then
+            notify DEADTIME "Letztes erfolgreiches Backup war vor weniger als $deadtime Tagen"
+            exit 0;
+        fi
+        verbose_echo "Deadtime ignored because --force was specified"
+    else
+        verbose_echo "Deadtime is over"
     fi
+else
+    verbose_echo "No deadtime given"
 fi
 
 notify START "Starte Backup"
@@ -213,11 +239,13 @@ if [ -z "$source" ]; then
     notify FATAL "Kann Quellpfad nicht bestimmen (sollte in source::path stehen)"
     exit 127;
 fi
+verbose_echo "Source $source"
 target=$($config --section target --key path --emptydefault)
 if [ -z "$target" ]; then
     notify FATAL "Kann Zielpfad nicht bestimmen (sollte in target::path stehen)"
     exit 127;
 fi
+verbose_echo "Target $target"
 exclude_file=$($config --section source --key exclude_file --emptydefault)
 if [ -z "$exclude_file" ]; then
     notify FATAL "Kann nicht bestimmen, welche Dateien vom Backup ausgeschlossen werden sollen (sollte in source::exclude_file stehen)"
@@ -230,20 +258,26 @@ if [ ! -r "$exclude_file" ]; then
     notify FATAL "Kann Datei mit Ausschlussliste $exclude_file nicht lesen"
     exit 127;
 fi
+verbose_echo "Exclude file $exclude_file"
 
 for part in target source; do
     provide_exe=$($config --section $part --key provide --emptydefault)
     provide_unless=$($config --section $part --key provide_unless --default false)
-    if [ ! -z "$provide_exe" ] && ! $provide_unless; then
-        eval $provide_exe
-        case "$?" in
-            0) # normal ok
-            ;;
-            *)
-                notify FAIL "Bereitstellen von $part mittels $provide_exe fehlgeschlagen ($?)"
-                exit 2
-            ;;
-        esac
+    if [ ! -z "$provide_exe" ]; then
+        if ! $provide_unless; then
+            verbose_echo "Need to provide $part via '$provide_exe'"
+            eval $provide_exe
+            case "$?" in
+                0) # normal ok
+                ;;
+                *)
+                    notify FAIL "Bereitstellen von $part mittels $provide_exe fehlgeschlagen ($?)"
+                    exit 2
+                ;;
+            esac
+        else
+            verbose_echo "No need to provide $part"
+        fi
     fi
 done
 
@@ -260,6 +294,10 @@ if [[ -z "$rsynclogfile" ]]; then
     rsynclogfile=$(mktemp)
 fi
 rsyncerrfile=$(mktemp)
+verbose_echo "RSYNC privilege $privilege"
+verbose_echo "RSYNC no_cross $no_cross"
+verbose_echo "RSYNC log file $rsynclogfile"
+verbose_echo "RSYNC err file $rsyncerrfile"
 $privilege \
 rsync --partial -via \
         $no_cross \
@@ -274,6 +312,7 @@ loglines=$(wc -l < $rsynclogfile)
 log_in_one_line=$(awk 1 ORS='\\n' "$rsynclogfile")
 errlines=$(wc -l < $rsyncerrfile)
 err_in_one_line=$(awk 1 ORS='\\n' "$rsyncerrfile")
+verbose_echo "RSYNC done, exit code $rsync_error, $loglines log lines, $errlines error lines"
 case $rsync_error in
     0)
         notify SUCCESS "output in $rsynclogfile\\n$err_in_one_line";
