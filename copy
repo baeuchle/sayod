@@ -18,7 +18,7 @@ function ask_provide {
     timeout=$1;
     shift;
     question="$*"
-    zenity --question --timeout=$timeout --title "Backup ${rc/.rc/}" --text="$question"
+    zenity --question --timeout=$timeout --title "Backup $friendly_rc" --text="$question"
     case "$?" in
         0)
             return 0
@@ -75,7 +75,7 @@ trap cleanup EXIT
 function readlog {
     loghost=$($config --section notify --key host --default localhost)
     loguser=$($config --section notify --key user --default $LOGNAME)
-    logremote=$($config --section notify --key remotekey --default $rc)
+    logremote=$($config --section notify --key remotekey --default $stripped_rc)
     logmsg="content-type: text/x-plain-ask\n$logremote\nSUCCESS\n\nlast"
     echo -e "$logmsg" | ssh $loguser@$loghost logreader | awk '{print $1}'
     if [ $? -ne 0 ]; then
@@ -95,44 +95,45 @@ function notify {
         ABORT)
             subject="ABORT"
             urgency="normal"
-            head="Backup abgebrochen"
+            head="Backup $friendly_rc abgebrochen"
             timeout="10000"
         ;;
         DEADTIME)
             subject="DEADTIME"
             urgency="low"
-            head="Backup: Braucht noch nicht wieder"
+            head="Backup $friendly_rc: Braucht noch nicht wieder"
             timeout="2000"
         ;;
         FAIL) # Fehler beim Ausführen
             subject="FAIL"
             urgency="critical"
-            head="Backup: Fehler $msgdate"
+            head="Backup $friendly_rc: Fehler $msgdate"
             timeout="60000"
         ;;
         FATAL) # Fehler im Script / Konfiguration
             subject="WTF!"
             urgency="critical"
-            head="Backup-Fehler (Fatal)"
+            head="Backup-Fehler (Fatal) $friendly_rc"
             timeout="3600000"
         ;;
         START)
             subject="START"
             urgency="low"
-            head="Starte Backup"
+            head="Starte Backup $friendly_rc"
             msg="$msgdate"
             timeout="4000"
         ;;
         SUCCESS)
             subject="SUCCESS"
             urgency="low"
-            head="Backup: Erfolg"
+            head="Backup $friendly_rc: Erfolg"
             timeout="4000"
         ;;
         *)
             subject="$1"
             timeout="5000"
             urgency="normal"
+            head="Backup $friendly_rc"
             shift
         ;;
     esac
@@ -141,12 +142,12 @@ function notify {
     loghost=$($config --section notify --key host --default localhost)
     loguser=$($config --section notify --key user --default $LOGNAME)
     logpipe=$($config --section notify --key pipe --emptydefault)
-    logremote=$($config --section notify --key remotekey --default $rc)
+    logremote=$($config --section notify --key remotekey --default $stripped_rc)
     logmsg="content-type: text/x-plain-log\n$logremote\n$subject\n$msg"
     if [ "$logpipe" == "yes" ]; then
         echo -e "$logmsg" | ssh $loguser@$loghost receiver
         if [ $? -ne 0 ]; then
-            notify-send -u critical -t 3600000 "Backup-Fehler ${rc/.rc/}" "Kann Meldungen nicht auf dem Server schreiben ($?)"
+            notify-send -u critical -t 3600000 "Backup-Fehler $friendly_rc" "Kann Meldungen nicht auf dem Server schreiben ($?)"
         fi
     else
         echo "$logmsg"
@@ -179,11 +180,19 @@ while [ $# -gt 0 ]; do
         ;;
     esac
 done
-config="$exec_dir/config.py --file $config_dir$rc"
-if ! $config --doesfileexist --section a --key b; then
-    notify FATAL "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei $config_dir$rc nicht gefunden"
+config=""
+stripped_rc=${rc/.@(rc|ini)}
+for rc_variant in $config_dir$rc $config_dir$rc.rc $config_dir$rc.ini; do
+    config="$exec_dir/config.py --file $config_dir$rc_variant"
+    if $config --doesfileexist --section a --key b; then
+        break
+    fi
+done
+if [ -z "$config" ]; then
+    notify FATAL "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei $config_dir$stripped_rc nicht gefunden"
     exit 127;
 fi
+friendly_rc=$($config --section notify --key friendly_name --default $stripped_rc)
 
 deadtime=$($config --section rsync --key deadtime --default 0)
 if [ $deadtime -gt 0 ]; then
