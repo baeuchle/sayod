@@ -15,7 +15,7 @@ parser = argparse.ArgumentParser(description='Analyses log entries and reports v
 parser.add_argument('--config', required=True, help='Configuration source')
 args = parser.parse_args()
 
-config = Config(args.config)
+config = Config(args.config, fail_on_missing_file=True)
 log_obj = TaggedLog(config.find('status', 'file', ''), 'a+')
 
 warn_missing_success = config.find("status", "warn_missing", 9)

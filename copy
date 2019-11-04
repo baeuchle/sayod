@@ -181,9 +181,11 @@ while [ $# -gt 0 ]; do
     esac
 done
 config=""
-stripped_rc=${rc/.@(rc|ini)}
-for rc_variant in $config_dir$rc $config_dir$rc.rc $config_dir$rc.ini; do
+stripped_rc=${rc/.rc}
+stripped_rc=${stripped_rc/.ini}
+for rc_variant in $rc $rc.rc $rc.ini; do
     config="$exec_dir/config.py --file $config_dir$rc_variant"
+    echo $config
     if $config --doesfileexist --section a --key b; then
         break
     fi

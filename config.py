@@ -18,10 +18,10 @@ class Config:
             filename = Config.basedir() / filename
         ini_obj = configparser.ConfigParser()
         rc_found = False
-        for rc_variant in (filename, filename + ".rc", filename + ".ini"):
+        for rc_variant in (filename, filename.with_suffix(".rc"), filename.with_suffix(".ini")):
             ini_obj.read(str(rc_variant))
             rc_found = True
-        if not rc_found
+        if not rc_found:
             if kwargs.get("fail_on_missing_file", False):
                 raise FileNotFoundError(errno.ENOENT, "Configuration file not found", str(filename))
             ini_obj = None
