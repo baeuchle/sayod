@@ -16,12 +16,27 @@ class Config:
             filename = Path(filename)
         if not filename.is_absolute():
             filename = Config.basedir() / filename
-        ini_obj = configparser.ConfigParser()
+        ini_obj = configparser.ConfigParser(
+            interpolation=configparser.ExtendedInterpolation()
+        )
         rc_found = False
-        for rc_variant in (filename, filename.with_suffix(".rc"), filename.with_suffix(".ini")):
-            ini_obj.read(str(rc_variant))
-            rc_found = True
-        if not rc_found:
+        variants = (
+            str(filename),
+            str(filename.with_suffix(".rc")),
+            str(filename.with_suffix(".ini"))
+        )
+        ini_obj.read(variants)
+        if 'defaults' in ini_obj:
+            for tag, def_file in ini_obj['defaults'].items():
+                path = Path(def_file)
+                if def_file[0] != '/':
+                    path = filename.parents[0] / def_file
+                if len(ini_obj.read(str(path))) == 0:
+                    raise FileNotFoundError(errno.ENOENT,
+                        "defaults file {} not found".format(tag),
+                        def_file)
+        ini_obj.read(variants)
+        if len(ini_obj.sections()) == 0:
             if kwargs.get("fail_on_missing_file", False):
                 raise FileNotFoundError(errno.ENOENT, "Configuration file not found", str(filename))
             ini_obj = None

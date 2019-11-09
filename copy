@@ -211,7 +211,7 @@ if [ -z "$config" ]; then
     notify FATAL "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei $config_dir$stripped_rc nicht gefunden"
     exit 127;
 fi
-friendly_rc=$($config --section notify --key friendly_name --default $stripped_rc)
+friendly_rc=$($config --section info --key friendly_name --default $stripped_rc)
 verbose_echo "Friendly name $friendly_rc"
 
 deadtime=$($config --section rsync --key deadtime --default 0)

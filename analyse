@@ -35,22 +35,26 @@ if last_success is None:
         "NEVER"
     )
 elif last_success.date < warn_missing_since:
-    msg = """
-        Das letzte erfolgreiche Backup ist länger als {} Tage her (es wurde um
-        {:%H:%M Uhr am %d.%m.%Y} beendet). Nach dieser Zeitspanne erhälst du
-        diese Warnung, weil wir sichergehen wollen, dass ein ausbleibendes
-        Backup nicht bedeutet, dass etwas kaputt ist.
-        """.format(
-            warn_missing_success,
-            last_success.date
+    msg = config.find("messages", "warn_missing",
+        "Last successful backup was before {last_success.dat:%Y.%m.%d %H:%M}."
+    ).format(
+            days=warn_missing_success,
+            last_success=last_success
         )
     last_start = log_obj.find(subject="START", since=last_success.date, action='last')
     if last_start is not None:
-        msg += """\n\nDas letzte angefangende Backup war vor {} Tagen.""".format(
-            (now - last_start.date).days
+        msg += "\n\n"
+        msg += config.find("messages", "report_last_started",
+            "Last backup was at {last_start.date:%Ym.%m.%d %H:%M}"
+        ).format(
+            last_start=last_start,
+            diff=(now - last_start.date)
         )
     else:
-        msg += "\n\nSeit dem letzten erfolgreichen Backup wurde kein weiteres gestartet."
+        msg += "\n\n"
+        msg += config.find("messages", "no_further_tries",
+            "No more tries are recorded"
+        )
     last_success.content = msg.strip().replace('\n', "\\n")
     error_log['WARN'].append(last_success)
 
@@ -80,15 +84,14 @@ if totcount == 0 or totcount == len(error_log['NOTIFY']):
     # nothing to report: yee-hah!
     sys.exit(0)
 
-mail_message = """
-{}
-
-Die Analyse der letzten Backups hat {} Meldung(en) gefunden:
-
-""".format(
-    config.find('mail', 'opening', "Hallo"),
-    totcount
+mail_message = config.find('messages', 'opening', "Hallo")
+mail_message += "\n"
+mail_message += config.find("messages", "analyse_headline",
+    "Analysis has found {count} message(s)"
+).format(
+    count=totcount
 )
+mail_message += "\n"
 
 for cat in error_log:
     if len(error_log[cat]) == 0:
@@ -109,8 +112,14 @@ for cat in ('ERR', 'WARN', 'NOTIFY'):
     for ele in error_log[cat]:
         mail_message += ele.long_text(prefix='* ')
 
-mail_message += config.find('mail', 'closing', 'Bye')
-mail_message += "\n\n--\nErstellt mit Version: " + gitversion.describe() + "\n"
+mail_message += config.find('messages', 'closing', 'Bye')
+mail_message += "\n\n--\n"
+mail_message += config.find("messages", "version",
+    "Created by version {version}"
+).format(
+    version=gitversion.describe()
+)
+mail_message += "\n"
 
 key = config.find('mail', 'sign', 'No')
 mail_message = mail_message.strip()
