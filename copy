@@ -217,7 +217,11 @@ verbose_echo "Friendly name $friendly_rc"
 
 deadtime=$($config --section rsync --key deadtime --default 0)
 if [ $deadtime -gt 0 ]; then
-    last_success=$(date +%s -d $(readlog SUCCESS last))
+    last_string="$(readlog SUCCESS last)"
+    if [ "$last_string" == "None" ]; then
+        last_string="Jan 1 1970"
+    fi
+    last_success=$(date +%s -d "$last_string")
     tage=$(( ($(date +%s) - $last_success) / 86400 ))
     if [ $tage -lt $deadtime ]; then
         if [ -z "$force" ]; then
