@@ -17,7 +17,7 @@ function verbose_echo {
     if [ -z "$verbose" ]; then
         return
     fi
-    echo -e "$(sed 's/\\n/\n/g' <<<$* | fold -w 36 -s)"
+    echo -e "$(sed 's/\\n/\n/g' <<<$* | fold -w 72 -s)"
 }
 
 # may be used as provide script if user interaction is required.
@@ -145,7 +145,7 @@ function notify {
         ;;
     esac
     msg="$* $msg"
-    notify-send -u $urgency -t $timeout "$head" "$(sed 's/\\n/\n/g' <<<$msg | fold -w 36 -s)"
+    notify-send -u $urgency -t $timeout "$head" "$(sed 's/\\n/\n/g' <<<$msg | fold -w 72 -s)"
     verbose_echo "NOTIFY-SEND $head"
     verbose_echo $msg
     loghost=$($config --section notify --key host --default localhost)
