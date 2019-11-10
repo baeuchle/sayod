@@ -206,6 +206,7 @@ for rc_variant in $rc $stripped_rc.rc $stripped_rc.ini; do
         verbose_echo "Config file $rc_variant found"
         break
     fi
+    config=""
 done
 if [ -z "$config" ]; then
     notify FATAL "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei $config_dir$stripped_rc nicht gefunden"
