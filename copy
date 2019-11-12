@@ -7,7 +7,9 @@ if [ "$(which notify-send)" == "" ]; then
 fi
 
 # make sure notify-send works from cronjob
-export XDG_RUNTIME_DIR=/run/user/$(id -u)
+if [ -z "$XDG_RUNTIME_DIR" ]; then
+    export XDG_RUNTIME_DIR=/run/user/$(id -u)
+fi
 # same for zenity
 if [ -z "$DISPLAY" ]; then
     export DISPLAY=:0.0
