@@ -173,18 +173,18 @@ rc=rc.ini
 force=""
 while [ $# -gt 0 ]; do
     case "$1" in
-        --config)
+        -c|--config)
             shift;
             if [[ ! -z "$1" ]]; then
                 rc=$1
             fi
             shift;
         ;;
-        --force)
+        -f|--force)
             shift;
             force="yes"
         ;;
-        -v)
+        -v|--verbose)
             shift;
             verbose=1
         ;;
