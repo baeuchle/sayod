@@ -167,12 +167,6 @@ function notify {
     fi
 }
 
-config_dir="$($exec_dir/config_dir)"
-if [ "$?" -ne "0" ] || [ -z "$config_dir" ]; then
-    notify FATAL "Kann Konfigurationsverzeichnis nicht bestimmen"
-    exit 127;
-fi
-
 rc=rc.ini
 force=""
 while [ $# -gt 0 ]; do
@@ -201,7 +195,7 @@ config=""
 stripped_rc=${rc/.rc}
 stripped_rc=${stripped_rc/.ini}
 for rc_variant in $rc $stripped_rc.rc $stripped_rc.ini; do
-    config="$exec_dir/config.py --file $config_dir$rc_variant"
+    config="$exec_dir/config.py --file $rc_variant"
     if $config --doesfileexist --section a --key b; then
         verbose_echo "Config file $rc_variant found"
         break
@@ -209,7 +203,7 @@ for rc_variant in $rc $stripped_rc.rc $stripped_rc.ini; do
     config=""
 done
 if [ -z "$config" ]; then
-    notify FATAL "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei $config_dir$stripped_rc nicht gefunden"
+    notify FATAL "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei $stripped_rc nicht gefunden"
     exit 127;
 fi
 friendly_rc=$($config --section info --key friendly_name --default $stripped_rc)
@@ -257,7 +251,7 @@ if [ -z "$exclude_file" ]; then
     exit 127;
 fi
 if [[ $exclude_file != /* ]]; then
-    exclude_file=$config_dir$exclude_file
+    exclude_file=$exclude_file
 fi
 if [ ! -r "$exclude_file" ]; then
     notify FATAL "Kann Datei mit Ausschlussliste $exclude_file nicht lesen"
