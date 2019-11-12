@@ -1,0 +1,78 @@
+#!/bin/bash
+
+exec_dir=$(dirname $0)
+if [ "$(which notify-send)" == "" ]; then
+    echo "Kann notify-send nicht finden, bitte installieren" >&2
+    exit 127
+fi
+
+# make sure notify-send works from cronjob
+if [ -z "$XDG_RUNTIME_DIR" ]; then
+    export XDG_RUNTIME_DIR=/run/user/$(id -u)
+fi
+# same for zenity
+if [ -z "$DISPLAY" ]; then
+    export DISPLAY=:0.0
+fi
+
+function verbose_echo {
+    if [ -z "$verbose" ]; then
+        return
+    fi
+    echo -e "$(sed 's/\\n/\n/g' <<<$* | fold -w 72 -s)"
+}
+
+rc=rc.ini
+force=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -c|--config)
+            shift;
+            if [[ ! -z "$1" ]]; then
+                rc=$1
+            fi
+            shift;
+        ;;
+        -v|--verbose)
+            shift;
+            verbose=1
+        ;;
+        *)
+            shift;
+        ;;
+    esac
+done
+stripped_rc=${rc/.rc}
+stripped_rc=${stripped_rc/.ini}
+config="$exec_dir/config.py --file $stripped_rc"
+if $config --doesfileexist --section a --key b; then
+    verbose_echo "Config file $stripped_rc found"
+else
+    notify FATAL "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei $stripped_rc nicht gefunden"
+    exit 127;
+fi
+
+friendly_rc=$($config --section info --key friendly_name --default $stripped_rc)
+verbose_echo "Friendly name $friendly_rc"
+
+dbtype=$($config --section database --key type --default sqlite3)
+dumpdir=$($config --section database --key directory --default $PWD)
+dbsource=$($config --section database --key source --emptydefault)
+[ -z "$dbsource" ] && echo "database::source not found" >&2 && exit 1
+verbose_echo "Dumping $dbtype database $dbsource to $dumpdir"
+if [ "$dbtype" == 'sqlite3' ]; then
+    for table in $(sqlite3 $dbsource .tables); do
+        sqlite3 $dbsource ".dump $t" > $dumpdir/$table.sql
+        git -C $dumpdir add $table.sql
+    done
+elif [ "$dbtype" == 'mysql' ]; then
+    export MYSQL_PWD="$($config --section database --key password --emptydefault)";
+    user=$($config --section database --key user --default $USER)
+    for table in $(mysql --user=$user $dbsource -BNe "show tables;"); do
+        mysqldump --skip-extended-insert --skip-dump-date --user=$user $database $table > $dumpdir/$table.sql
+        git -C $dumpdir add $table.sql
+    done
+    unset MYSQL_PWD
+fi
+
+exit 0;
