@@ -75,7 +75,7 @@ if [ "$dbtype" == 'sqlite3' ]; then
         verbose_echo "Dumping table $table"
         outfile=$dumpdir/$table.sql
         sqlite3 $dbsource ".dump $table" > $outfile
-        filelist=$filelist $outfile
+        filelist="$filelist $outfile"
     done
 
 elif [ "$dbtype" == 'mysql' ]; then
@@ -95,7 +95,7 @@ elif [ "$dbtype" == 'mysql' ]; then
             notify FATAL "Table $table in db $dbsource cannot be dumped: $(awk 1 ORS='\\n' $mysqlerrfile)"
             exit 1;
         fi
-        filelist=$filelist $outfile
+        filelist="$filelist $outfile"
     done
     unset MYSQL_PWD
 fi
