@@ -59,7 +59,7 @@ if $gitcmd tag --sort=refname | grep -q ^$tagname$; then
         msg=$($config --section git --key grand_message --default "Grand backup")
         dateformat="$($config --section git --key grand_date --emptydefault)"
         if [ ! -z "$dateformat" ]; then
-            msg=$msg $(date +"$dateformat")
+            msg="$msg $(date +"$dateformat")"
         fi
         verbose_echo "Committing $msg"
         $gitcmd commit -qm "$msg"
@@ -71,7 +71,7 @@ fi
 
 verbose_echo "Creating new tag $tagname"
 $gitcmd tag $tagname
-for orig in $($config --section git --key origins --default master); do
+for orig in $($config --section git --key origins --default origin); do
     verbose_echo "Pushing to origin $orig"
     $gitcmd push -q $orig master
 done
