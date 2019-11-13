@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ -z "$nonotify" ]; then
-    if which notify-send >/dev/null; then
+    if ! which notify-send >/dev/null; then
         echo "Kann notify-send nicht finden, bitte installieren" >&2
         exit 127
     fi

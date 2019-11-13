@@ -16,6 +16,7 @@ trap cleanup EXIT
 rc=rc.ini
 temponly=0
 nonotify=""
+flags="$*"
 while [ $# -gt 0 ]; do
     case "$1" in
         -c|--config)
@@ -67,6 +68,7 @@ if [ -z "$dbsource" ]; then
 fi
 verbose_echo "Dumping $dbtype database $dbsource to $dumpdir"
 
+filelist=""
 if [ "$dbtype" == 'sqlite3' ]; then
     if [ ! -f $dbsource ]; then
         notify FATAL "Database source $dbsource not found"
@@ -76,7 +78,9 @@ if [ "$dbtype" == 'sqlite3' ]; then
     tablelist=$(sqlite3 $dbsource .tables)
     for table in $tablelist; do
         verbose_echo "Dumping table $table"
-        sqlite3 $dbsource ".dump $table" > $dumpdir/$table.sql
+        outfile=$dumpdir/$table.sql
+        sqlite3 $dbsource ".dump $table" > $outfile
+        filelist=$filelist $outfile
     done
 
 elif [ "$dbtype" == 'mysql' ]; then
@@ -90,11 +94,13 @@ elif [ "$dbtype" == 'mysql' ]; then
     fi
     for table in $tablelist; do
         verbose_echo "Dumping table $table"
-        mysqldump --skip-extended-insert --skip-dump-date --user=$user $dbsource $table > $dumpdir/$table.sql 2>$mysqlerrfile
+        outfile=$dumpdir/$table.sql
+        mysqldump --skip-extended-insert --skip-dump-date --user=$user $dbsource $table > $outfile 2>$mysqlerrfile
         if [ "$?" == "1" ]; then
             notify FATAL "Table $table in db $dbsource cannot be dumped: $(awk 1 ORS='\\n' $mysqlerrfile)"
             exit 1;
         fi
+        filelist=$filelist $outfile
     done
     unset MYSQL_PWD
 fi
@@ -104,36 +110,6 @@ if [ "$($config --section git --key commit --default No)" == "No" ]; then
     exit 0;
 fi
 
-for table in $tablelist; do
-    verbose_echo "Adding $table"
-    $gitcmd add $table.sql 2>/dev/null
-done
+$exec_dir/small_commit $flags --add "$filelist"
 
-if $gitcmd status --porcelain | grep -qv ^??; then
-    # there is something modified, so we will commit:
-    msg=$($config --section git --key temp_msg --default "Database $dbsource backup")
-    verbose_echo "Committing $msg"
-    $gitcmd commit -qm "$msg"
-fi
-
-if [ $temponly -eq 1 ]; then
-    verbose_echo "Temporary commit only; not pushing"
-    notify SUCCESS "Current commit is $($gitcmd log -1 --format=%H)"
-    exit 0;
-fi
-
-echo "VERBOSE <$verbose>"
-echo "NONOTIFY <$nonotify>"
-echo "--"
-if [ -z "$verbose" ]; then 
-    vflag=--quiet
-else
-    vflag=--verbose
-fi
-if [ -z "$nonotify" ]; then
-    nflag=--no-notify
-else
-    nflag=--notify
-fi
-$exec_dir/grand_commit --config $rc $vflag $nflag
 exit $?;

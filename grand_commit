@@ -56,7 +56,7 @@ if $gitcmd tag --sort=refname | grep -q ^$tagname$; then
     verbose_echo "Resetting to tag $tagname"
     $gitcmd reset --soft "$tagname";
     if $gitcmd status --porcelain | grep -qv ^??; then
-        msg=$($config --section git --key grand_msg --default "Grand backup")
+        msg=$($config --section git --key grand_message --default "Grand backup")
         dateformat="$($config --section git --key grand_date --emptydefault)"
         if [ ! -z "$dateformat" ]; then
             msg=$msg $(date +"$dateformat")
