@@ -1,26 +1,8 @@
 #!/bin/bash
 
 exec_dir=$(dirname $0)
-if [ "$(which notify-send)" == "" ]; then
-    echo "Kann notify-send nicht finden, bitte installieren" >&2
-    exit 127
-fi
-
-# make sure notify-send works from cronjob
-if [ -z "$XDG_RUNTIME_DIR" ]; then
-    export XDG_RUNTIME_DIR=/run/user/$(id -u)
-fi
-# same for zenity
-if [ -z "$DISPLAY" ]; then
-    export DISPLAY=:0.0
-fi
-
-function verbose_echo {
-    if [ -z "$verbose" ]; then
-        return
-    fi
-    echo -e "$(sed 's/\\n/\n/g' <<<$* | fold -w 72 -s)"
-}
+source $exec_dir/helpers.sh
+source $exec_dir/notify.sh
 
 # may be used as provide script if user interaction is required.
 function ask_provide {
@@ -95,80 +77,6 @@ function readlog {
     return 0
 }
 
-function notify {
-    msgdate="$(date +%Y-%m-%dT%H:%M:%S)"
-    msg=""
-    level=$1
-    shift
-    case "$level" in
-        ABORT)
-            subject="ABORT"
-            urgency="normal"
-            head="Backup $friendly_rc abgebrochen"
-            timeout="10000"
-        ;;
-        DEADTIME)
-            subject="DEADTIME"
-            urgency="low"
-            head="Backup $friendly_rc: Braucht noch nicht wieder"
-            timeout="2000"
-        ;;
-        FAIL) # Fehler beim Ausführen
-            subject="FAIL"
-            urgency="critical"
-            head="Backup $friendly_rc: Fehler $msgdate"
-            timeout="60000"
-        ;;
-        FATAL) # Fehler im Script / Konfiguration
-            subject="WTF!"
-            urgency="critical"
-            head="Backup-Fehler (Fatal) $friendly_rc"
-            timeout="3600000"
-        ;;
-        START)
-            subject="START"
-            urgency="low"
-            head="Starte Backup $friendly_rc"
-            msg="$msgdate"
-            timeout="4000"
-        ;;
-        SUCCESS)
-            subject="SUCCESS"
-            urgency="low"
-            head="Backup $friendly_rc: Erfolg"
-            timeout="4000"
-        ;;
-        *)
-            subject="$1"
-            timeout="5000"
-            urgency="normal"
-            head="Backup $friendly_rc"
-            shift
-        ;;
-    esac
-    msg="$* $msg"
-    notify-send -u $urgency -t $timeout "$head" "$(sed 's/\\n/\n/g' <<<$msg | fold -w 72 -s)"
-    verbose_echo "NOTIFY-SEND $head"
-    verbose_echo $msg
-    loghost=$($config --section notify --key host --default localhost)
-    loguser=$($config --section notify --key user --default $LOGNAME)
-    logpipe=$($config --section notify --key pipe --emptydefault)
-    logremote=$($config --section notify --key remotekey --default $stripped_rc)
-    logmsg="content-type: text/x-plain-log\n$logremote\n$subject\n$msg"
-    if [ "$logpipe" == "yes" ]; then
-        echo -e "$logmsg" | ssh $loguser@$loghost receiver
-        if [ $? -ne 0 ]; then
-            head="Backup-Fehler $friendly_rc"
-            msg="Kann Meldungen nicht auf dem Server schreiben ($?)"
-            notify-send -u critical -t 3600000 "$head" "$msg"
-            verbose_echo "NOTIFY-SEND $head"
-            verbose_echo $msg
-        fi
-    else
-        echo "$logmsg"
-    fi
-}
-
 rc=rc.ini
 force=""
 while [ $# -gt 0 ]; do
@@ -184,6 +92,10 @@ while [ $# -gt 0 ]; do
             shift;
             force="yes"
         ;;
+        -q|--quiet)
+            shift;
+            verbose=""
+        ;;
         -v|--verbose)
             shift;
             verbose=1
@@ -193,18 +105,8 @@ while [ $# -gt 0 ]; do
         ;;
     esac
 done
-stripped_rc=${rc/.rc}
-stripped_rc=${stripped_rc/.ini}
-config="$exec_dir/config.py --file $stripped_rc"
-if $config --doesfileexist --section a --key b; then
-    verbose_echo "Config file $stripped_rc found"
-else
-    notify FATAL "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei $stripped_rc nicht gefunden"
-    exit 127;
-fi
 
-friendly_rc=$($config --section info --key friendly_name --default $stripped_rc)
-verbose_echo "Friendly name $friendly_rc"
+source $exec_dir/find_config.sh
 
 deadtime=$($config --section rsync --key deadtime --default 0)
 if [ $deadtime -gt 0 ]; then
