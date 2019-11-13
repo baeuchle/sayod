@@ -58,7 +58,8 @@ source $exec_dir/find_config.sh
 
 dbtype=$($config --section database --key type --default sqlite3)
 dumpdir=$($config --section database --key directory --default $PWD)
-gitcmd="git -C $dumpdir"
+gitdir=$($config --section git --key directory --default "$dumpdir")
+gitcmd="git -C $gitdir"
 dbsource=$($config --section database --key source --emptydefault)
 if [ -z "$dbsource" ]; then
     notify FATAL "Kann Datenquelle nicht bestimmen (sollte in database::source stehen)" 
@@ -121,28 +122,18 @@ if [ $temponly -eq 1 ]; then
     exit 0;
 fi
 
-# find last tag called stable:
-tagname=$($config --section git --key tagname --default stable)
-
-if $gitcmd tag --sort=refname | grep -q ^$tagname$; then
-    verbose_echo "Resetting to tag $tagname"
-    $gitcmd reset --soft "$tagname";
-    if $gitcmd status --porcelain | grep -qv ^??; then
-        msg=$($config --section git --key grand_msg --default "Database $dbsource grand backup $(date)")
-        verbose_echo "Committing $msg"
-        $gitcmd commit -qm "$msg"
-    else
-        verbose_echo "No changes"
-    fi
-    $gitcmd tag -d $tagname > /dev/null; # not interested in success notification
+echo "VERBOSE <$verbose>"
+echo "NONOTIFY <$nonotify>"
+echo "--"
+if [ -z "$verbose" ]; then 
+    vflag=--quiet
+else
+    vflag=--verbose
 fi
-
-verbose_echo "Creating new tag $tagname"
-$gitcmd tag $tagname
-for orig in $($config --section git --key origins --default master); do
-    verbose_echo "Pushing to origin $orig"
-    $gitcmd push -q $orig master
-done
-
-notify SUCCESS "Current commit is $($gitcmd log -1 --format=%H)"
-exit 0;
+if [ -z "$nonotify" ]; then
+    nflag=--no-notify
+else
+    nflag=--notify
+fi
+$exec_dir/grand_commit --config $rc $vflag $nflag
+exit $?;
