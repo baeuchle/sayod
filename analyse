@@ -36,7 +36,7 @@ if last_success is None:
     )
 elif last_success.date < warn_missing_since:
     msg = config.find("messages", "warn_missing",
-        "Last successful backup was before {last_success.dat:%Y.%m.%d %H:%M}."
+        "Last successful backup was before {last_success.date:%Y.%m.%d %H:%M}."
     ).format(
             days=warn_missing_success,
             last_success=last_success

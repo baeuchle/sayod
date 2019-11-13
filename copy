@@ -1,15 +1,18 @@
 #!/bin/bash
 
 exec_dir=$(dirname $0)
-source $exec_dir/helpers.sh
 source $exec_dir/notify.sh
 
 # may be used as provide script if user interaction is required.
 function ask_provide {
-    timeout=$1;
+    local _timeout=$1;
     shift;
-    question="$*"
-    zenity --question --timeout=$timeout --title "Backup $friendly_rc" --text="$question"
+    local _question="$*"
+    zenity \
+        --question \
+        --timeout=$_timeout \
+        --title "Backup $friendly_rc" \
+        --text="$_question"
     case "$?" in
         0)
             return 0
@@ -36,20 +39,20 @@ function dir_exists {
 
 # may be used in provide_unless directives
 function is_mountpoint {
-    dir="$*"
-    if [ "$dir" != "/" ]; then
-        dir=${dir%/}
+    local _dir="$*"
+    if [ "$_dir" != "/" ]; then
+        _dir=${_dir%/}
     fi
-    if [ -z "$dir" ]; then return 2; fi
-    mount | grep -q " $dir "
+    if [ -z "$_dir" ]; then return 2; fi
+    mount | grep -q " $_dir "
     return $?
 }
 
 function cleanup {
     for part in target source; do
-        clean_cmd=$($config --section $part --key release --emptydefault)
-        if [ ! -z "$clean_cmd" ]; then
-            $clean_cmd
+        local _clean_cmd=$($config --section $part --key release --emptydefault)
+        if [ ! -z "$_clean_cmd" ]; then
+            $_clean_cmd
         fi
     done
     if [ -f "$rsyncerrfile" ]; then
@@ -64,13 +67,13 @@ function cleanup {
 trap cleanup EXIT
 
 function readlog {
-    loghost=$($config --section notify --key host --default localhost)
-    loguser=$($config --section notify --key user --default $LOGNAME)
-    logremote=$($config --section notify --key remotekey --default $stripped_rc)
-    logmsg="content-type: text/x-plain-ask\n$logremote\nSUCCESS\n\nlast"
-    echo -e "$logmsg" | ssh $loguser@$loghost logreader | awk '{print $1}'
+    local _loghost=$($config --section notify --key host --default localhost)
+    local _loguser=$($config --section notify --key user --default $LOGNAME)
+    local _logremote=$($config --section notify --key remotekey --default $stripped_rc)
+    local _logmsg="content-type: text/x-plain-ask\n$_logremote\nSUCCESS\n\nlast"
+    echo -e "$_logmsg" | ssh $_loguser@$_loghost logreader | awk '{print $1}'
     if [ $? -ne 0 ]; then
-        notify-send -u low -t 3000 "Backup-Fehler ${rc/.rc/}" "Kann entferntes Log nicht lesen"
+        notify-send -u low -t 3000 "Backup-Fehler $friendly_rc" "Kann entferntes Log nicht lesen"
         echo "0"
         return 1
     fi
@@ -105,6 +108,7 @@ while [ $# -gt 0 ]; do
         ;;
     esac
 done
+source $exec_dir/helpers.sh
 
 # make sure there is a display for zenity
 if [ -z "$DISPLAY" ]; then
