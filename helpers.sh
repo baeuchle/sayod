@@ -1,17 +1,19 @@
 #!/bin/bash
 
-if [ "$(which notify-send)" == "" ]; then
-    echo "Kann notify-send nicht finden, bitte installieren" >&2
-    exit 127
-fi
-
-# make sure notify-send works from cronjob
-if [ -z "$XDG_RUNTIME_DIR" ]; then
-    export XDG_RUNTIME_DIR=/run/user/$(id -u)
-fi
-# same for zenity
-if [ -z "$DISPLAY" ]; then
-    export DISPLAY=:0.0
+if [ -z "$nonotify" ]; then
+    if which notify-send >/dev/null; then
+        echo "Kann notify-send nicht finden, bitte installieren" >&2
+        exit 127
+    fi
+    # make sure notify-send works from cronjob
+    if [ -z "$XDG_RUNTIME_DIR" ]; then
+        export XDG_RUNTIME_DIR=/run/user/$(id -u)
+    fi
+else
+    # if notify-send shouldn't be used, just mute it.
+    function notify-send {
+        true
+    }
 fi
 
 function verbose_echo {

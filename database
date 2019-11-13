@@ -1,11 +1,21 @@
 #!/bin/bash
 
 exec_dir=$(dirname $0)
-source $exec_dir/helpers.sh
 source $exec_dir/notify.sh
+
+function cleanup {
+    if [ -z "$mysqlerrfile" ]; then
+        return
+    fi
+    if [ -f "$mysqlerrfile" ]; then
+        rm $mysqlerrfile
+    fi
+}
+trap cleanup EXIT
 
 rc=rc.ini
 temponly=0
+nonotify=""
 while [ $# -gt 0 ]; do
     case "$1" in
         -c|--config)
@@ -14,6 +24,16 @@ while [ $# -gt 0 ]; do
                 rc=$1
             fi
             shift;
+        ;;
+        # this is the standard behavior
+        -n|--notify)
+            shift;
+            nonotify=""
+        ;;
+        # turn off notify-send
+        -no-n|--no-notify)
+            shift;
+            nonotify=1
         ;;
         -q|--quiet)
             shift;
@@ -33,6 +53,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+source $exec_dir/helpers.sh
 source $exec_dir/find_config.sh
 
 dbtype=$($config --section database --key type --default sqlite3)
@@ -53,14 +74,26 @@ if [ "$dbtype" == 'sqlite3' ]; then
     notify START "Database dump $dbsource started"
     tablelist=$(sqlite3 $dbsource .tables)
     for table in $tablelist; do
-        sqlite3 $dbsource ".dump $t" > $dumpdir/$table.sql
+        verbose_echo "Dumping table $table"
+        sqlite3 $dbsource ".dump $table" > $dumpdir/$table.sql
     done
+
 elif [ "$dbtype" == 'mysql' ]; then
     export MYSQL_PWD="$($config --section database --key password --emptydefault)";
-    user=$($config --section database --key user --default $USER)
-    tablelist=$(mysql --user=$user $dbsource -BNe "show tables;")
+    user=$($config --section database --key user --default $LOGNAME)
+    mysqlerrfile=$(mktemp)
+    tablelist=$(mysql --user=$user $dbsource -BNe "show tables;" 2>$mysqlerrfile)
+    if [ "$?" == "1" ]; then
+        notify FATAL "Database table list cannot be read: $(awk 1 ORS='\\n' $mysqlerrfile)"
+        exit 1;
+    fi
     for table in $tablelist; do
-        mysqldump --skip-extended-insert --skip-dump-date --user=$user $database $table > $dumpdir/$table.sql
+        verbose_echo "Dumping table $table"
+        mysqldump --skip-extended-insert --skip-dump-date --user=$user $dbsource $table > $dumpdir/$table.sql 2>$mysqlerrfile
+        if [ "$?" == "1" ]; then
+            notify FATAL "Table $table in db $dbsource cannot be dumped: $(awk 1 ORS='\\n' $mysqlerrfile)"
+            exit 1;
+        fi
     done
     unset MYSQL_PWD
 fi
