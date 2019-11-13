@@ -1,29 +1,11 @@
 #!/bin/bash
 
 exec_dir=$(dirname $0)
-if [ "$(which notify-send)" == "" ]; then
-    echo "Kann notify-send nicht finden, bitte installieren" >&2
-    exit 127
-fi
-
-# make sure notify-send works from cronjob
-if [ -z "$XDG_RUNTIME_DIR" ]; then
-    export XDG_RUNTIME_DIR=/run/user/$(id -u)
-fi
-# same for zenity
-if [ -z "$DISPLAY" ]; then
-    export DISPLAY=:0.0
-fi
-
-function verbose_echo {
-    if [ -z "$verbose" ]; then
-        return
-    fi
-    echo -e "$(sed 's/\\n/\n/g' <<<$* | fold -w 72 -s)"
-}
+source $exec_dir/helpers.sh
+source $exec_dir/notify.sh
 
 rc=rc.ini
-force=""
+temponly=0
 while [ $# -gt 0 ]; do
     case "$1" in
         -c|--config)
@@ -32,6 +14,14 @@ while [ $# -gt 0 ]; do
                 rc=$1
             fi
             shift;
+        ;;
+        -q|--quiet)
+            shift;
+            verbose=""
+        ;;
+        -t|--temp)
+            shift;
+            temponly=1
         ;;
         -v|--verbose)
             shift;
@@ -42,37 +32,84 @@ while [ $# -gt 0 ]; do
         ;;
     esac
 done
-stripped_rc=${rc/.rc}
-stripped_rc=${stripped_rc/.ini}
-config="$exec_dir/config.py --file $stripped_rc"
-if $config --doesfileexist --section a --key b; then
-    verbose_echo "Config file $stripped_rc found"
-else
-    notify FATAL "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei $stripped_rc nicht gefunden"
-    exit 127;
-fi
 
-friendly_rc=$($config --section info --key friendly_name --default $stripped_rc)
-verbose_echo "Friendly name $friendly_rc"
+source $exec_dir/find_config.sh
 
 dbtype=$($config --section database --key type --default sqlite3)
 dumpdir=$($config --section database --key directory --default $PWD)
+gitcmd="git -C $dumpdir"
 dbsource=$($config --section database --key source --emptydefault)
-[ -z "$dbsource" ] && echo "database::source not found" >&2 && exit 1
+if [ -z "$dbsource" ]; then
+    notify FATAL "Kann Datenquelle nicht bestimmen (sollte in database::source stehen)" 
+    exit 1
+fi
 verbose_echo "Dumping $dbtype database $dbsource to $dumpdir"
+
 if [ "$dbtype" == 'sqlite3' ]; then
-    for table in $(sqlite3 $dbsource .tables); do
+    if [ ! -f $dbsource ]; then
+        notify FATAL "Database source $dbsource not found"
+        exit 1;
+    fi
+    notify START "Database dump $dbsource started"
+    tablelist=$(sqlite3 $dbsource .tables)
+    for table in $tablelist; do
         sqlite3 $dbsource ".dump $t" > $dumpdir/$table.sql
-        git -C $dumpdir add $table.sql
     done
 elif [ "$dbtype" == 'mysql' ]; then
     export MYSQL_PWD="$($config --section database --key password --emptydefault)";
     user=$($config --section database --key user --default $USER)
-    for table in $(mysql --user=$user $dbsource -BNe "show tables;"); do
+    tablelist=$(mysql --user=$user $dbsource -BNe "show tables;")
+    for table in $tablelist; do
         mysqldump --skip-extended-insert --skip-dump-date --user=$user $database $table > $dumpdir/$table.sql
-        git -C $dumpdir add $table.sql
     done
     unset MYSQL_PWD
 fi
 
+if [ "$($config --section git --key commit --default No)" == "No" ]; then
+    notify SUCCESS "Database dump complete without source control"
+    exit 0;
+fi
+
+for table in $tablelist; do
+    verbose_echo "Adding $table"
+    $gitcmd add $table.sql 2>/dev/null
+done
+
+if $gitcmd status --porcelain | grep -qv ^??; then
+    # there is something modified, so we will commit:
+    msg=$($config --section git --key temp_msg --default "Database $dbsource backup")
+    verbose_echo "Committing $msg"
+    $gitcmd commit -qm "$msg"
+fi
+
+if [ $temponly -eq 1 ]; then
+    verbose_echo "Temporary commit only; not pushing"
+    notify SUCCESS "Current commit is $($gitcmd log -1 --format=%H)"
+    exit 0;
+fi
+
+# find last tag called stable:
+tagname=$($config --section git --key tagname --default stable)
+
+if $gitcmd tag --sort=refname | grep -q ^$tagname$; then
+    verbose_echo "Resetting to tag $tagname"
+    $gitcmd reset --soft "$tagname";
+    if $gitcmd status --porcelain | grep -qv ^??; then
+        msg=$($config --section git --key grand_msg --default "Database $dbsource grand backup $(date)")
+        verbose_echo "Committing $msg"
+        $gitcmd commit -qm "$msg"
+    else
+        verbose_echo "No changes"
+    fi
+    $gitcmd tag -d $tagname > /dev/null; # not interested in success notification
+fi
+
+verbose_echo "Creating new tag $tagname"
+$gitcmd tag $tagname
+for orig in $($config --section git --key origins --default master); do
+    verbose_echo "Pushing to origin $orig"
+    $gitcmd push -q $orig master
+done
+
+notify SUCCESS "Current commit is $($gitcmd log -1 --format=%H)"
 exit 0;
