@@ -14,7 +14,6 @@ function cleanup {
 trap cleanup EXIT
 
 rc=rc.ini
-temponly=0
 nonotify=""
 flags="$*"
 while [ $# -gt 0 ]; do
@@ -39,10 +38,6 @@ while [ $# -gt 0 ]; do
         -q|--quiet)
             shift;
             verbose=""
-        ;;
-        -t|--temp)
-            shift;
-            temponly=1
         ;;
         -v|--verbose)
             shift;
