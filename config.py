@@ -21,10 +21,18 @@ class Config:
         )
         variants = (
             str(filename),
+            str(filename.with_suffix('')),
             str(filename.with_suffix(".rc")),
             str(filename.with_suffix(".ini"))
         )
         ini_obj.read(variants)
+        if len(ini_obj.sections()) == 0:
+            raise FileNotFoundError(errno.ENOENT, "Configuration file not found", str(filename))
+        # add environment variables to [env]; this allows to use them in
+        # interpolation directives.
+        ini_obj.read_dict({'env': os.environ,
+                           'info': { 'stripped_name': filename.with_suffix('').name }
+                          })
         # if there is a section [defaults], then use each value as a
         # file to be loaded:
         if 'defaults' in ini_obj:
@@ -38,8 +46,6 @@ class Config:
                         def_file)
         # re-read original file to override defaults:
         ini_obj.read(variants)
-        if len(ini_obj.sections()) == 0:
-            raise FileNotFoundError(errno.ENOENT, "Configuration file not found", str(filename))
         self.configuration = ini_obj
 
     def find(self, section, key, default):
