@@ -1,5 +1,8 @@
 #!/usr/bin/python3
 
+"""Reads new log entries from STDIN and adds them to the appropriate
+log. Communication follows text/x-plain-log type"""
+
 import sys
 
 from config import Config
@@ -12,18 +15,17 @@ if line.startswith("content-type: "):
     line = sys.stdin.readline().strip()
 
 try:
-    config = Config(line, fail_on_missing_file=True)
+    config = Config(line)
 except FileNotFoundError as fnfe:
     print("{} {}".format(fnfe.strerror, fnfe.filename), file=sys.stderr)
     sys.exit(1)
+status_file = config.find('status', 'file', None)
+if status_file is None:
+    print("Status file cannot be determined", file=sys.stderr)
+    sys.exit(1)
+log_obj = TaggedLog(status_file, 'a+')
+
 entry = FromStream(sys.stdin, content_type)
 
-try:
-    status_file = config.find('status', 'file', '')
-except BaseException as be:
-    print("Status file cannot be determined:", str(be), file=sys.stderr)
-    sys.exit(1)
-
-log_obj = TaggedLog(status_file, 'a+')
 log_obj.append(entry)
 sys.exit(0)

@@ -14,16 +14,16 @@ if line.startswith("content-type: "):
     content_type = line[len("content-type: "):]
     line = sys.stdin.readline().strip()
 
-status_file= ""
 try:
-    config = Config(line, fail_on_missing_file=True)
-    status_file = config.find('status', 'file', '')
+    config = Config(line)
 except FileNotFoundError as fnfe:
     print("{} {}".format(fnfe.strerror, fnfe.filename), file=sys.stderr)
     sys.exit(1)
-except BaseException as be:
-    print("Status file cannot be determined:", str(be), file=sys.stderr)
+status_file = config.find('status', 'file', None)
+if status_file is None:
+    print("Status file cannot be determined", file=sys.stderr)
     sys.exit(1)
+log_obj = TaggedLog(status_file, 'r')
 
 subject_list = []
 for line in sys.stdin:
@@ -35,7 +35,6 @@ action = 'list'
 for line in sys.stdin:
     action = line.strip()
 
-log_obj = TaggedLog(status_file, 'a+')
 entries = log_obj.find(subjects=subject_list, action=action)
 print(entries)
 sys.exit(0)

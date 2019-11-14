@@ -11,7 +11,7 @@ class Config:
     def basedir():
         return Path.home() / '.config' / 'backup'
     
-    def __init__(self, filename, **kwargs):
+    def __init__(self, filename):
         if isinstance(filename, str):
             filename = Path(filename)
         if not filename.is_absolute():
