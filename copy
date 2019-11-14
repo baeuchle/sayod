@@ -67,11 +67,12 @@ trap cleanup EXIT
 function readlog {
     local _loghost=$($config --section notify --key host --default localhost)
     local _loguser=$($config --section notify --key user --default $LOGNAME)
+    local _logport=$($config --section notify --key port --default 22)
     local _logremote=$($config --section notify --key remotekey --default $stripped_rc)
     local _logmsg="content-type: text/x-plain-ask\n$_logremote\nSUCCESS\n\nlast"
     local _readlogerr=$(mktemp)
     echo -e "$_logmsg" | \
-        ssh $_loguser@$_loghost logreader | \
+        ssh $_loguser@$_loghost -p $_logport logreader | \
         awk '{print $1}' \
         2>$_readlogerr || \
         ( \

@@ -57,18 +57,23 @@ function notify {
     verbose_echo $_msg
     local _loghost=$($config --section notify --key host --default localhost)
     local _loguser=$($config --section notify --key user --default $LOGNAME)
+    local _logport=$($config --section notify --key port --default 22)
     local _logpipe=$($config --section notify --key pipe --emptydefault)
     local _logremote=$($config --section notify --key remotekey --default $stripped_rc)
     local _logmsg="content-type: text/x-plain-log\n$_logremote\n$subject\n$_msg"
     if [ "$_logpipe" == "yes" ]; then
-        echo -e "$_logmsg" | ssh $_loguser@$_loghost receiver
-        if [ $? -ne 0 ]; then
-            head="Backup-Fehler $friendly_rc"
-            _msg="Kann Meldungen nicht auf dem Server schreiben ($?)"
-            notify-send -u critical -t 3600000 "$head" "$_msg"
-            verbose_echo "NOTIFY-SEND $head"
-            verbose_echo $_msg
-        fi
+        local _errfile=$(mktemp)
+        echo -e "$_logmsg" | \
+            ssh $_loguser@$_loghost -p $_logport receiver \
+            2>$_errfile || \
+            (
+                head="Backup-Fehler $friendly_rc"
+                _msg="Kann Meldungen nicht auf dem Server schreiben $_errfile:\\n$(one_line $_errfile)"
+                notify-send -u critical -t 3600000 "$head" "$_msg"
+                verbose_echo "NOTIFY-SEND $head"
+                verbose_echo $_msg
+            )
+        rm $_errfile
     else
         echo "$_logmsg"
     fi
