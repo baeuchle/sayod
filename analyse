@@ -121,9 +121,9 @@ mail_message += config.find("messages", "version",
 )
 mail_message += "\n"
 
-key = config.find('mail', 'sign', 'No')
+key = config.find('mail', 'sign', None)
 mail_message = mail_message.strip()
-if key[0:2] == '0x':
+if len(key) > 2 && key[0:2] == '0x':
     gpg = GPG()
     gpg.encoding = 'utf-8'
     mail_message = str(gpg.sign(mail_message, clearsign=True, keyid=key))

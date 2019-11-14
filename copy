@@ -48,7 +48,7 @@ function is_mountpoint {
 
 function cleanup {
     for part in target source; do
-        local _clean_cmd=$($config --section $part --key release --emptydefault)
+        local _clean_cmd=$($config --section $part --key release --default '')
         if [ -n "$_clean_cmd" ]; then
             $_clean_cmd
         fi
@@ -145,19 +145,19 @@ fi
 notify START "Starte Backup"
 
 # This part should do the actual copying.
-source=$($config --section source --key path --emptydefault)
+source=$($config --section source --key path --default '')
 if [ -z "$source" ]; then
     notify FATAL "Kann Quellpfad nicht bestimmen (sollte in source::path stehen)"
     exit 127;
 fi
 verbose_echo "Source $source"
-target=$($config --section target --key path --emptydefault)
+target=$($config --section target --key path --default '')
 if [ -z "$target" ]; then
     notify FATAL "Kann Zielpfad nicht bestimmen (sollte in target::path stehen)"
     exit 127;
 fi
 verbose_echo "Target $target"
-exclude_file=$($config --section source --key exclude_file --emptydefault)
+exclude_file=$($config --section source --key exclude_file --default '')
 if [ -z "$exclude_file" ]; then
     notify FATAL "Kann nicht bestimmen, welche Dateien vom Backup ausgeschlossen werden sollen (sollte in source::exclude_file stehen)"
     exit 127;
@@ -169,7 +169,7 @@ fi
 verbose_echo "Exclude file $exclude_file"
 
 for part in target source; do
-    provide_exe=$($config --section $part --key provide --emptydefault)
+    provide_exe=$($config --section $part --key provide --default '')
     provide_unless=$($config --section $part --key provide_unless --default false)
     if [ -n "$provide_exe" ]; then
         if ! $provide_unless; then
@@ -189,15 +189,15 @@ for part in target source; do
     fi
 done
 
-privilege=$($config --section rsync --key privilege --emptydefault)
+privilege=$($config --section rsync --key privilege --default '')
 if [ "$privilege" == "sudo" ]; then
     privilege=""
 fi
-no_cross=$($config --section rsync --key no_cross --emptydefault)
+no_cross=$($config --section rsync --key no_cross --default '')
 if [ "$no_cross" -ne "-x" ]; then
     no_cross=""
 fi
-rsynclogfile=$(date +"$($config --section rsync --key outfile --emptydefault)")
+rsynclogfile=$(date +"$($config --section rsync --key outfile --default '')")
 if [ -z "$rsynclogfile" ]; then
     rsynclogfile=$(mktemp)
 fi

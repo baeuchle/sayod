@@ -56,7 +56,7 @@ dbtype=$($config --section database --key type --default sqlite3)
 dumpdir=$($config --section database --key directory --default $PWD)
 gitdir=$($config --section git --key directory --default "$dumpdir")
 gitcmd="git -C $gitdir"
-dbsource=$($config --section database --key source --emptydefault)
+dbsource=$($config --section database --key source --default '')
 if [ -z "$dbsource" ]; then
     notify FATAL "Kann Datenquelle nicht bestimmen (sollte in database::source stehen)" 
     exit 1
@@ -79,7 +79,7 @@ if [ "$dbtype" == 'sqlite3' ]; then
     done
 
 elif [ "$dbtype" == 'mysql' ]; then
-    export MYSQL_PWD="$($config --section database --key password --emptydefault)";
+    export MYSQL_PWD="$($config --section database --key password --default '')";
     user=$($config --section database --key user --default $LOGNAME)
     mysqlerrfile=$(mktemp)
     tablelist=$(mysql --user=$user $dbsource -BNe "show tables;" 2>$mysqlerrfile)

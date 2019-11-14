@@ -58,7 +58,7 @@ function notify {
     local _loghost=$($config --section notify --key host --default localhost)
     local _loguser=$($config --section notify --key user --default $LOGNAME)
     local _logport=$($config --section notify --key port --default 22)
-    local _logpipe=$($config --section notify --key pipe --emptydefault)
+    local _logpipe=$($config --section notify --key pipe --default '')
     local _logremote=$($config --section notify --key remotekey --default $stripped_rc)
     local _logmsg="content-type: text/x-plain-log\n$_logremote\n$subject\n$_msg"
     if [ "$_logpipe" == "yes" ]; then

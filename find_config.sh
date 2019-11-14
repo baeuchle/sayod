@@ -3,7 +3,7 @@
 stripped_rc=${rc/.rc}
 stripped_rc=${stripped_rc/.ini}
 config="$exec_dir/config.py --file $stripped_rc"
-if $config --doesfileexist --section a --key b; then
+if $config --section . --key . --default .; then
     verbose_echo "Config file $stripped_rc found"
 else
     notify FATAL "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei $stripped_rc nicht gefunden"
