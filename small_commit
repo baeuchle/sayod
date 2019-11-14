@@ -53,11 +53,11 @@ source $exec_dir/find_config.sh
 gitdir=$($config --section git --key directory --default "$PWD")
 gitcmd="git -C $gitdir"
 
-for file in $addfiles $($config --section git --key add --emptydefault); do
+for file in $addfiles $($config --section git --key add --default ''); do
     verbose_echo "Adding $file"
     $gitcmd add $file 2>/dev/null
 done
-if [ -n "$($config --section git --key add_all --emptydefault)" ]; then
+if [ -n "$($config --section git --key add_all --default '')" ]; then
     verbose_echo "Adding all tracked files"
     git add -u
 fi
