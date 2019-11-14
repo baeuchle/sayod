@@ -33,8 +33,7 @@ function ask_provide {
 
 # may be used in provide_unless directives
 function dir_exists {
-    [[ -d "$*" ]]
-    return $?
+    [ -d "$*" ]
 }
 
 # may be used in provide_unless directives
@@ -44,14 +43,13 @@ function is_mountpoint {
         _dir=${_dir%/}
     fi
     if [ -z "$_dir" ]; then return 2; fi
-    mount | grep -q " $_dir "
-    return $?
+    return mount | grep -q " $_dir "
 }
 
 function cleanup {
     for part in target source; do
         local _clean_cmd=$($config --section $part --key release --emptydefault)
-        if [ ! -z "$_clean_cmd" ]; then
+        if [ -n "$_clean_cmd" ]; then
             $_clean_cmd
         fi
     done
@@ -71,13 +69,17 @@ function readlog {
     local _loguser=$($config --section notify --key user --default $LOGNAME)
     local _logremote=$($config --section notify --key remotekey --default $stripped_rc)
     local _logmsg="content-type: text/x-plain-ask\n$_logremote\nSUCCESS\n\nlast"
-    echo -e "$_logmsg" | ssh $_loguser@$_loghost logreader | awk '{print $1}'
-    if [ $? -ne 0 ]; then
-        notify-send -u low -t 3000 "Backup-Fehler $friendly_rc" "Kann entferntes Log nicht lesen"
-        echo "0"
-        return 1
-    fi
-    return 0
+    local _readlogerr=$(mktemp)
+    echo -e "$_logmsg" | \
+        ssh $_loguser@$_loghost logreader | \
+        awk '{print $1}' \
+        2>$_readlogerr || \
+        ( \
+            notify-send -u low -t 3000 "Backup-Fehler $friendly_rc" "Kann entferntes Log nicht lesen:\\n$(one_line $_readlogerr)";
+            echo "0";
+            false
+        ) && \
+        true
 }
 
 rc=rc.ini
@@ -86,7 +88,7 @@ while [ $# -gt 0 ]; do
     case "$1" in
         -c|--config)
             shift;
-            if [[ ! -z "$1" ]]; then
+            if [ -n "$1" ]; then
                 rc=$1
             fi
             shift;
@@ -108,6 +110,7 @@ while [ $# -gt 0 ]; do
         ;;
     esac
 done
+
 source $exec_dir/helpers.sh
 
 # make sure there is a display for zenity
@@ -158,9 +161,6 @@ if [ -z "$exclude_file" ]; then
     notify FATAL "Kann nicht bestimmen, welche Dateien vom Backup ausgeschlossen werden sollen (sollte in source::exclude_file stehen)"
     exit 127;
 fi
-if [[ $exclude_file != /* ]]; then
-    exclude_file=$exclude_file
-fi
 if [ ! -r "$exclude_file" ]; then
     notify FATAL "Kann Datei mit Ausschlussliste $exclude_file nicht lesen"
     exit 127;
@@ -170,7 +170,7 @@ verbose_echo "Exclude file $exclude_file"
 for part in target source; do
     provide_exe=$($config --section $part --key provide --emptydefault)
     provide_unless=$($config --section $part --key provide_unless --default false)
-    if [ ! -z "$provide_exe" ]; then
+    if [ -n "$provide_exe" ]; then
         if ! $provide_unless; then
             verbose_echo "Need to provide $part via '$provide_exe'"
             eval $provide_exe
@@ -189,15 +189,15 @@ for part in target source; do
 done
 
 privilege=$($config --section rsync --key privilege --emptydefault)
-if [[ "$privilege" -ne "sudo" ]]; then
+if [ "$privilege" == "sudo" ]; then
     privilege=""
 fi
 no_cross=$($config --section rsync --key no_cross --emptydefault)
-if [[ "$no_cross" -ne "-x" ]]; then
+if [ "$no_cross" -ne "-x" ]; then
     no_cross=""
 fi
 rsynclogfile=$(date +"$($config --section rsync --key outfile --emptydefault)")
-if [[ -z "$rsynclogfile" ]]; then
+if [ -z "$rsynclogfile" ]; then
     rsynclogfile=$(mktemp)
 fi
 rsyncerrfile=$(mktemp)
@@ -216,9 +216,9 @@ rsync --partial -via \
 rsync_error=$?
 
 loglines=$(wc -l < $rsynclogfile)
-log_in_one_line=$(awk 1 ORS='\\n' "$rsynclogfile")
+log_in_one_line=$(one_line "$rsynclogfile")
 errlines=$(wc -l < $rsyncerrfile)
-err_in_one_line=$(awk 1 ORS='\\n' "$rsyncerrfile")
+err_in_one_line=$(one_line $rsyncerrfile)
 verbose_echo "RSYNC done, exit code $rsync_error, $loglines log lines, $errlines error lines"
 case $rsync_error in
     0)

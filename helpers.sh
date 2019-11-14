@@ -22,3 +22,8 @@ function verbose_echo {
     fi
     echo -e "$(sed 's/\\n/\n/g' <<<$* | fold -w 72 -s)"
 }
+
+function one_line {
+    awk 1 ORS='\\n' "$1";
+}
+

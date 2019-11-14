@@ -2,10 +2,10 @@
 
 function notify {
     local _msgdate="$(date +%Y-%m-%dT%H:%M:%S)"
-    msg=""
-    level=$1
+    local _msg=""
+    local _level=$1
     shift
-    case "$level" in
+    case "$_level" in
         ABORT)
             subject="ABORT"
             urgency="normal"
@@ -34,7 +34,7 @@ function notify {
             subject="START"
             urgency="low"
             head="Starte Backup $friendly_rc"
-            msg="$_msgdate"
+            _msg="$_msgdate"
             timeout="4000"
         ;;
         SUCCESS)
@@ -51,25 +51,25 @@ function notify {
             shift
         ;;
     esac
-    msg="$* $msg"
-    notify-send -u $urgency -t $timeout "$head" "$(sed 's/\\n/\n/g' <<<$msg | fold -w 72 -s)"
+    _msg="$* $_msg"
+    notify-send -u $urgency -t $timeout "$head" "$(sed 's/\\n/\n/g' <<<$_msg | fold -w 72 -s)"
     verbose_echo "NOTIFY-SEND $head"
-    verbose_echo $msg
-    loghost=$($config --section notify --key host --default localhost)
-    loguser=$($config --section notify --key user --default $LOGNAME)
-    logpipe=$($config --section notify --key pipe --emptydefault)
-    logremote=$($config --section notify --key remotekey --default $stripped_rc)
-    logmsg="content-type: text/x-plain-log\n$logremote\n$subject\n$msg"
-    if [ "$logpipe" == "yes" ]; then
-        echo -e "$logmsg" | ssh $loguser@$loghost receiver
+    verbose_echo $_msg
+    local _loghost=$($config --section notify --key host --default localhost)
+    local _loguser=$($config --section notify --key user --default $LOGNAME)
+    local _logpipe=$($config --section notify --key pipe --emptydefault)
+    local _logremote=$($config --section notify --key remotekey --default $stripped_rc)
+    local _logmsg="content-type: text/x-plain-log\n$_logremote\n$subject\n$_msg"
+    if [ "$_logpipe" == "yes" ]; then
+        echo -e "$_logmsg" | ssh $_loguser@$_loghost receiver
         if [ $? -ne 0 ]; then
             head="Backup-Fehler $friendly_rc"
-            msg="Kann Meldungen nicht auf dem Server schreiben ($?)"
-            notify-send -u critical -t 3600000 "$head" "$msg"
+            _msg="Kann Meldungen nicht auf dem Server schreiben ($?)"
+            notify-send -u critical -t 3600000 "$head" "$_msg"
             verbose_echo "NOTIFY-SEND $head"
-            verbose_echo $msg
+            verbose_echo $_msg
         fi
     else
-        echo "$logmsg"
+        echo "$_logmsg"
     fi
 }

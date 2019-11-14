@@ -20,7 +20,7 @@ while [ $# -gt 0 ]; do
     case "$1" in
         -c|--config)
             shift;
-            if [[ ! -z "$1" ]]; then
+            if [ -n "$1" ]; then
                 rc=$1
             fi
             shift;
@@ -83,16 +83,16 @@ elif [ "$dbtype" == 'mysql' ]; then
     user=$($config --section database --key user --default $LOGNAME)
     mysqlerrfile=$(mktemp)
     tablelist=$(mysql --user=$user $dbsource -BNe "show tables;" 2>$mysqlerrfile)
-    if [ "$?" == "1" ]; then
-        notify FATAL "Database table list cannot be read: $(awk 1 ORS='\\n' $mysqlerrfile)"
+    if [ $? -ne 0 ]; then
+        notify FATAL "Database table list cannot be read:\\n$(one_line $mysqlerrfile)"
         exit 1;
     fi
     for table in $tablelist; do
         verbose_echo "Dumping table $table"
         outfile=$dumpdir/$table.sql
         mysqldump --skip-extended-insert --skip-dump-date --user=$user $dbsource $table > $outfile 2>$mysqlerrfile
-        if [ "$?" == "1" ]; then
-            notify FATAL "Table $table in db $dbsource cannot be dumped: $(awk 1 ORS='\\n' $mysqlerrfile)"
+        if [ $? -ne 0 ]; then
+            notify FATAL "Table $table in db $dbsource cannot be dumped:\\n$(one_line $mysqlerrfile)"
             exit 1;
         fi
         filelist="$filelist $outfile"

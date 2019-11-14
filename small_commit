@@ -4,21 +4,21 @@ exec_dir=$(dirname $0)
 source $exec_dir/notify.sh
 
 rc=rc.ini
-temponly=0
 nonotify=""
+temponly=0
 addfiles=""
 while [ $# -gt 0 ]; do
     case "$1" in
         -a|--add)
             shift;
-            if [[ ! -z "$1" ]]; then
+            if [ -n "$1" ]; then
                 addfiles=$1
             fi
             shift;
         ;;
         -c|--config)
             shift;
-            if [[ ! -z "$1" ]]; then
+            if [ -n "$1" ]; then
                 rc=$1
             fi
             shift;
@@ -57,17 +57,17 @@ for file in $addfiles $($config --section git --key add --emptydefault); do
     verbose_echo "Adding $file"
     $gitcmd add $file 2>/dev/null
 done
-if [ ! -z "$($config --section git --key add_all --emptydefault)" ]; then
+if [ -n "$($config --section git --key add_all --emptydefault)" ]; then
     verbose_echo "Adding all tracked files"
     git add -u
 fi
 
 if $gitcmd status --porcelain | grep -qv ^??; then
     # there is something modified, so we will commit:
-    msg=$($config --section git --key small_message --default "small backup")
+    msg=$(date +"$($config --section git --key small_message --default "small backup")")
     verbose_echo "Committing $msg"
     $gitcmd commit -qm "$msg"
 fi
-notify SUCCESS "Current commit is $($gitcmd log -1 --format=%H)"
 
-exit 0
+notify SUCCESS "Current commit is $($gitcmd log -1 --format=%H)"
+exit 0;
