@@ -43,7 +43,7 @@ function is_mountpoint {
         _dir=${_dir%/}
     fi
     if [ -z "$_dir" ]; then return 2; fi
-    return mount | grep -q " $_dir "
+    mount | grep -q " $_dir "
 }
 
 function cleanup {
@@ -194,7 +194,7 @@ if [ "$privilege" == "sudo" ]; then
     privilege=""
 fi
 no_cross=$($config --section rsync --key no_cross --default '')
-if [ "$no_cross" -ne "-x" ]; then
+if [ "$no_cross" != "-x" ]; then
     no_cross=""
 fi
 rsynclogfile=$(date +"$($config --section rsync --key outfile --default '')")
