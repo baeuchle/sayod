@@ -76,7 +76,7 @@ function readlog {
         awk '{print $1}' \
         2>$_readlogerr || \
         ( \
-            notify-send -u low -t 3000 "Backup-Fehler $friendly_rc" "Kann entferntes Log nicht lesen:\\n$(one_line $_readlogerr)";
+            notify-send -u low -t $(get_timeout fail 3000) "Backup-Fehler $friendly_rc" "Kann entferntes Log nicht lesen:\\n$(one_line $_readlogerr)";
             echo "0";
             false
         ) && \

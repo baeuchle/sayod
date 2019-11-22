@@ -3,10 +3,10 @@
 function get_timeout {
     local _key="$1"
     local _default="$2"
-    if [ -z "_$default" ]; then
+    if [ -z "$_default" ]; then
         _default=10000
     fi
-    local _global_timeout=timeout=$($config --section --notify --key --timeout --default $_default)
+    local _global_timeout=$($config --section notify --key timeout --default $_default)
     $config --section timeout --key $_key --default $_global_timeout
 }
 
