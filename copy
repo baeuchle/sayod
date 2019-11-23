@@ -12,7 +12,8 @@ function ask_provide {
         --question \
         --timeout=$_timeout \
         --title "Backup $friendly_rc" \
-        --text="$_question"
+        --text="$_question" \
+        --width=600
     case "$?" in
         0)
             return 0
