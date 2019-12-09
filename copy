@@ -12,7 +12,8 @@ function ask_provide {
         --question \
         --timeout=$_timeout \
         --title "Backup $friendly_rc" \
-        --text="$_question"
+        --text="$_question" \
+        --width=600
     case "$?" in
         0)
             return 0
@@ -43,7 +44,7 @@ function is_mountpoint {
         _dir=${_dir%/}
     fi
     if [ -z "$_dir" ]; then return 2; fi
-    return mount | grep -q " $_dir "
+    mount | grep -q " $_dir "
 }
 
 function cleanup {
@@ -76,7 +77,7 @@ function readlog {
         awk '{print $1}' \
         2>$_readlogerr || \
         ( \
-            notify-send -u low -t 3000 "Backup-Fehler $friendly_rc" "Kann entferntes Log nicht lesen:\\n$(one_line $_readlogerr)";
+            notify-send -u low -t $(get_timeout fail 3000) "Backup-Fehler $friendly_rc" "Kann entferntes Log nicht lesen:\\n$(one_line $_readlogerr)";
             echo "0";
             false
         ) && \
@@ -194,7 +195,7 @@ if [ "$privilege" == "sudo" ]; then
     privilege=""
 fi
 no_cross=$($config --section rsync --key no_cross --default '')
-if [ "$no_cross" -ne "-x" ]; then
+if [ "$no_cross" != "-x" ]; then
     no_cross=""
 fi
 rsynclogfile=$(date +"$($config --section rsync --key outfile --default '')")
