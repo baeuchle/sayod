@@ -191,7 +191,7 @@ for part in target source; do
 done
 
 privilege=$($config --section rsync --key privilege --default '')
-if [ "$privilege" == "sudo" ]; then
+if [ "$privilege" != "sudo" ]; then
     privilege=""
 fi
 no_cross=$($config --section rsync --key no_cross --default '')
