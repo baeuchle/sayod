@@ -59,7 +59,7 @@ for file in $addfiles $($config --section git --key add --default ''); do
 done
 if [ -n "$($config --section git --key add_all --default '')" ]; then
     verbose_echo "Adding all tracked files"
-    git add -u
+    $gitcmd add -u
 fi
 
 if $gitcmd status --porcelain | grep -qv ^??; then
