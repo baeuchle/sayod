@@ -63,7 +63,7 @@ function notify {
         ;;
     esac
     _msg="$* $_msg"
-    notify-send -u $urgency -t $_timeout "$head" "$(sed 's/\\n/\n/g' <<<$_msg | fold -w 72 -s)"
+    notify-send -u $urgency -t $_timeout "$head" "$(sed 's/\\n/\n/g' <<<$_msg | fold -w 72 -s | head -c 131071)"
     verbose_echo "NOTIFY-SEND $head"
     verbose_echo $_msg
     local _loghost=$($config --section notify --key host --default localhost)
