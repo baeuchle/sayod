@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+"""Read backup configuration"""
+
 import argparse
 import configparser
 import errno
@@ -8,9 +10,10 @@ import os
 import sys
 
 class Config:
-    def basedir():
+    @classmethod
+    def basedir(cls):
         return Path.home() / '.config' / 'backup'
-    
+
     def __init__(self, filename):
         if isinstance(filename, str):
             filename = Path(filename)
@@ -31,7 +34,7 @@ class Config:
         # add environment variables to [env]; this allows to use them in
         # interpolation directives.
         ini_obj.read_dict({'env': os.environ,
-                           'info': { 'stripped_name': filename.with_suffix('').name }
+                           'info': {'stripped_name': filename.with_suffix('').name}
                           })
         # if there is a section [defaults], then use each value as a
         # file to be loaded:
@@ -58,7 +61,8 @@ if __name__ == "__main__":
     parser.add_argument('--section', required=True, help='Configuration file section')
     parser.add_argument('--key', required=True, help='Configuration section key')
     parser.add_argument('--file', required=True, help='Which file to use')
-    parser.add_argument('--default', required=False, default=None, help='Return this string if no entry found')
+    parser.add_argument('--default', required=False, default=None,
+                        help='Return this string if no entry found')
     args = parser.parse_args()
     if args.section == '.' and args.key == '.' and args.default == '.':
         try:

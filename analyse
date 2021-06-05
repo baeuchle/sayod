@@ -1,15 +1,17 @@
 #!/usr/bin/python3
 
+"""Analyse log entries and report the analysis via mail"""
+
 import argparse
 import datetime
 from email.message import EmailMessage
-from gnupg import GPG
 from smtplib import SMTP
 import sys
+from gnupg import GPG
 
 from config import Config
-from taggedlog import *
-import gitversion
+from taggedlog import TaggedEntry, TaggedLog
+from gitversion import Git
 
 parser = argparse.ArgumentParser(description='Analyses log entries and reports via mail')
 parser.add_argument('--config', required=True, help='Configuration source')
@@ -31,7 +33,7 @@ error_log = {
     }
 
 now = datetime.datetime.now()
-warn_missing_since = now - datetime.timedelta(days = int(warn_missing_success))
+warn_missing_since = now - datetime.timedelta(days=int(warn_missing_success))
 last_success = log_obj.find(subject="SUCCESS", action='last')
 if last_success is None:
     last_success = TaggedEntry(
@@ -121,7 +123,7 @@ mail_message += "\n\n--\n"
 mail_message += config.find("messages", "version",
     "Created by version {version}"
 ).format(
-    version=gitversion.describe()
+    version=Git().command('describe', '--always')
 )
 mail_message += "\n"
 
@@ -143,7 +145,7 @@ if mailprg == 'mail':
     with SMTP('localhost') as s:
         try:
             s.send_message(msg)
-        except BaseException as be:
+        except BaseException as be: # pylint: disable=broad-except
             log_obj.append(TaggedEntry(str(be), "NOMAIL"))
             sys.exit(2)
     log_obj.append(TaggedEntry(msg['To'], "MAIL"))

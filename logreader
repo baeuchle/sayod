@@ -6,7 +6,7 @@ were found"""
 import sys
 
 from config import Config
-from taggedlog import *
+from taggedlog import TaggedLog
 
 line = sys.stdin.readline().strip()
 content_type = "text/x-plain-ask"

@@ -6,7 +6,7 @@ log. Communication follows text/x-plain-log type"""
 import sys
 
 from config import Config
-from taggedlog import *
+from taggedlog import TaggedLog, FromStream
 
 line = sys.stdin.readline().strip()
 content_type = "text/x-plain-log"
