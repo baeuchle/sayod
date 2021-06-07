@@ -9,6 +9,8 @@ from pathlib import Path
 import os
 import sys
 
+import log
+
 class Config:
     @classmethod
     def basedir(cls):
@@ -25,16 +27,13 @@ class Config:
                             required=True)
 
     @classmethod
-    def get_config(cls, config_file, log=None, **kwargs):
+    def get_config(cls, config_file, log, **kwargs):
         if isinstance(config_file, argparse.Namespace):
             return cls.get_config(config_file.configuration_file, log, **kwargs)
         try:
             return Config(config_file)
         except FileNotFoundError as fnfe:
-            if log is None:
-                print(f"{fnfe.strerror} {fnfe.filename}", file=sys.stderr)
-            else:
-                log.critical("%s %s", fnfe.strerror, fnfe.filename)
+            log.critical("%s %s", fnfe.strerror, fnfe.filename)
             sys.exit(kwargs.get('failure_exit', 1))
 
     def __init__(self, filename):
@@ -76,7 +75,9 @@ class Config:
 
     def find(self, section, key, default):
         if self.configuration.has_option(section, key):
+            log.debug("Found option %s::%s = %s" % (section, key, self.configuration[section][key]))
             return self.configuration[section][key]
+        log.debug("Option %s::%s not found" % (section, key))
         return default
 
 if __name__ == "__main__":
@@ -86,12 +87,14 @@ if __name__ == "__main__":
     parser.add_argument('--default', required=False, default=None,
                         help='Return this string if no entry found')
     Config.add_options(parser)
+    log.add_options(parser)
     args = parser.parse_args()
-    # TODO use logger
+
+    log = log.getLogger('config', args)
     if args.section == '.' and args.key == '.':
-        cobj = Config.get_config(args, None, failure_exit=2)
+        cobj = Config.get_config(args, log, failure_exit=2)
         sys.exit(0)
-    cobj = Config.get_config(args, None)
+    cobj = Config.get_config(args, log)
     data = cobj.find(args.section, args.key, args.default)
     if data is not None:
         print(data)
