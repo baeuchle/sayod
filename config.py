@@ -14,6 +14,29 @@ class Config:
     def basedir(cls):
         return Path.home() / '.config' / 'backup'
 
+    @classmethod
+    def add_options(cls, ap, **kwargs):
+        group = ap.add_argument_group('Configuration')
+        optname = kwargs.get('optname', 'config')
+        group.add_argument('--' + optname,
+                            action='store',
+                            dest='configuration_file',
+                            help='name of the configuration file',
+                            required=True)
+
+    @classmethod
+    def get_config(cls, config_file, log=None, **kwargs):
+        if isinstance(config_file, argparse.Namespace):
+            return cls.get_config(config_file.configuration_file, log, **kwargs)
+        try:
+            return Config(config_file)
+        except FileNotFoundError as fnfe:
+            if log is None:
+                print(f"{fnfe.strerror} {fnfe.filename}", file=sys.stderr)
+            else:
+                log.critical("%s %s", fnfe.strerror, fnfe.filename)
+            sys.exit(kwargs.get('failure_exit', 1))
+
     def __init__(self, filename):
         if isinstance(filename, str):
             filename = Path(filename)
@@ -34,7 +57,7 @@ class Config:
         # add environment variables to [env]; this allows to use them in
         # interpolation directives.
         ini_obj.read_dict({'env': os.environ,
-                           'info': {'stripped_name': filename.with_suffix('').name}
+                           'info': {'stripped_name': filename.stem}
                           })
         # if there is a section [defaults], then use each value as a
         # file to be loaded:
@@ -60,18 +83,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Returns configuration parameters')
     parser.add_argument('--section', required=True, help='Configuration file section')
     parser.add_argument('--key', required=True, help='Configuration section key')
-    parser.add_argument('--file', required=True, help='Which file to use')
     parser.add_argument('--default', required=False, default=None,
                         help='Return this string if no entry found')
+    Config.add_options(parser)
     args = parser.parse_args()
-    if args.section == '.' and args.key == '.' and args.default == '.':
-        try:
-            cobj = Config(args.file)
-            sys.exit(0)
-        except FileNotFoundError as fnfe:
-            print(str(fnfe), file=sys.stderr)
-            sys.exit(2)
-    cobj = Config(args.file)
+    # TODO use logger
+    if args.section == '.' and args.key == '.':
+        cobj = Config.get_config(args, None, failure_exit=2)
+        sys.exit(0)
+    cobj = Config.get_config(args, None)
     data = cobj.find(args.section, args.key, args.default)
     if data is not None:
         print(data)
