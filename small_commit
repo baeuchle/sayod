@@ -1,73 +1,47 @@
-#!/bin/bash
+#!/usr/bin/python3
 
-exec_dir=$(dirname $0)
-source $exec_dir/notify.sh
+"""Creates a small git commit"""
 
-rc=rc.ini
-nonotify=""
-temponly=0
-addfiles=""
-while [ $# -gt 0 ]; do
-    case "$1" in
-        -a|--add)
-            shift;
-            if [ -n "$1" ]; then
-                addfiles=$1
-            fi
-            shift;
-        ;;
-        -c|--config)
-            shift;
-            if [ -n "$1" ]; then
-                rc=$1
-            fi
-            shift;
-        ;;
-        # this is the standard behavior
-        -n|--notify)
-            shift;
-            nonotify=""
-        ;;
-        # turn off notify-send
-        -no-n|--no-notify)
-            shift;
-            nonotify=1
-        ;;
-        -q|--quiet)
-            shift;
-            verbose=""
-        ;;
-        -v|--verbose)
-            shift;
-            verbose=1
-        ;;
-        *)
-            shift;
-        ;;
-    esac
-done
+import argparse
+from datetime import datetime
+from pathlib import Path
+import sys
+from gitversion import Git
+from config import Config
+from notify import Notify
+import log
 
-source $exec_dir/helpers.sh
-source $exec_dir/find_config.sh
+parser = argparse.ArgumentParser(description="""Creates a small commit""")
+parser.add_argument('--add', '-a',
+    action='append',
+    required=False,
+    default=[]
+)
+Config.add_options(parser)
+log.add_options(parser)
+Notify.add_options(parser)
+args = parser.parse_args()
 
-gitdir=$($config --section git --key directory --default "$PWD")
-gitcmd="git -C $gitdir"
+log = log.get_logger('small_commit', args)
+config = Config.get_config(args)
+notify = Notify(config, show=not args.notification_dontshow)
+git = Git(config.find('git', 'directory', Path.cwd()))
 
-for file in $addfiles $($config --section git --key add --default ''); do
-    verbose_echo "Adding $file"
-    $gitcmd add $file 2>/dev/null
-done
-if [ -n "$($config --section git --key add_all --default '')" ]; then
-    verbose_echo "Adding all tracked files"
-    $gitcmd add -u
-fi
+addable_files = args.add
+for pattern in config.find('git', 'add', '').split():
+    path = Path(pattern)
+    addable_files.extend(path.parent.glob(path.name))
+for curr_file in addable_files:
+    log.info("Adding %s", curr_file)
+    git.command('add', curr_file)
+if config.find('git', 'add_all', False):
+    log.info("Adding all tracked files")
+    git.command('add', '-u')
 
-if $gitcmd status --porcelain | grep -qv ^??; then
-    # there is something modified, so we will commit:
-    msg=$(date +"$($config --section git --key small_message --default "small backup")")
-    verbose_echo "Committing $msg"
-    $gitcmd commit -qm "$msg"
-fi
+if git.there_are_untracked_files():
+    msg = config.find('git', 'small_message', 'small backup').format(datetime.now())
+    log.info("Commiting %s", msg)
+    git.command('commit', '-qm', msg)
 
-notify SUCCESS "Current commit is $($gitcmd log -1 --format=%H)"
-exit 0;
+notify.success("Current commit is", git.hash())
+sys.exit(0)
