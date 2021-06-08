@@ -14,14 +14,13 @@ if line.startswith("content-type: "):
     content_type = line[len("content-type: "):]
     line = sys.stdin.readline().strip()
 
-try:
-    config = Config(line)
-except FileNotFoundError as fnfe:
-    print("{} {}".format(fnfe.strerror, fnfe.filename), file=sys.stderr)
-    sys.exit(1)
+# TODO use Config.get_config()
+# TODO use logger
+log = log.getLogger('receiver', 30)
+config = Config.get_config(line, log)
 status_file = config.find('status', 'file', None)
 if status_file is None:
-    print("Status file cannot be determined", file=sys.stderr)
+    log.warning("Status file cannot be determined")
     sys.exit(1)
 log_obj = TaggedLog(status_file, 'a+')
 
