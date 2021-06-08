@@ -113,7 +113,7 @@ if __name__ == '__main__':
     parser.add_argument('notification_text', nargs='+')
     cmdopts = parser.parse_args()
 
-    log = log.getLogger('notify', cmdopts)
+    log = log.get_logger('notify', cmdopts)
     config_ = Config(cmdopts.config, log)
     notify = Notify(config_, log, show=not cmdopts.no_notify)
     # TODO notification severity from cmd line
