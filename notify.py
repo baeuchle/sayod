@@ -17,7 +17,7 @@ def oneline(text):
 
 class Notify:
     @classmethod
-    def add_options(cls, ap, **kwargs):
+    def add_options(cls, ap):
         group = ap.add_argument_group('Notification')
         group.add_argument('--no-notify',
                             action='store_true',
