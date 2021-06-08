@@ -20,7 +20,7 @@ log.add_options(parser)
 args = parser.parse_args()
 
 log = log.get_logger('analyse', args)
-config = Config.get_logger(parser, log)
+config = Config.get_config(parser, log)
 log_obj = TaggedLog(config.find('status', 'file', ''), 'a+')
 
 warn_missing_success = config.find("status", "warn_missing", 9)

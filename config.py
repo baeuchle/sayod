@@ -27,16 +27,17 @@ class Config:
                             required=True)
 
     @classmethod
-    def get_config(cls, config_file, log, **kwargs):
+    def get_config(cls, config_file, logger, **kwargs):
         if isinstance(config_file, argparse.Namespace):
-            return cls.get_config(config_file.configuration_file, log, **kwargs)
+            return cls.get_config(config_file.configuration_file, logger, **kwargs)
         try:
-            return Config(config_file)
+            return Config(config_file, logobj=logger)
         except FileNotFoundError as fnfe:
-            log.critical("%s %s", fnfe.strerror, fnfe.filename)
+            logger.critical("%s %s", fnfe.strerror, fnfe.filename)
             sys.exit(kwargs.get('failure_exit', 1))
 
-    def __init__(self, filename):
+    def __init__(self, filename, logobj=None):
+        self.log = logobj
         if isinstance(filename, str):
             filename = Path(filename)
         if not filename.is_absolute():
@@ -75,9 +76,10 @@ class Config:
 
     def find(self, section, key, default):
         if self.configuration.has_option(section, key):
-            log.debug("Found option %s::%s = %s" % (section, key, self.configuration[section][key]))
+            self.log.debug("Found option %s::%s = %s",
+                section, key, self.configuration[section][key])
             return self.configuration[section][key]
-        log.debug("Option %s::%s not found" % (section, key))
+        self.log.debug("Option %s::%s not found", section, key)
         return default
 
 if __name__ == "__main__":
