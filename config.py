@@ -11,6 +11,8 @@ import sys
 
 import log
 
+clog = log.get_logger('config')
+
 class Config:
     @classmethod
     def basedir(cls):
@@ -27,17 +29,16 @@ class Config:
                             required=True)
 
     @classmethod
-    def get_config(cls, config_file, logger, **kwargs):
+    def get_config(cls, config_file, **kwargs):
         if isinstance(config_file, argparse.Namespace):
-            return cls.get_config(config_file.configuration_file, logger, **kwargs)
+            return cls.get_config(config_file.configuration_file, **kwargs)
         try:
-            return Config(config_file, logobj=logger)
+            return Config(config_file)
         except FileNotFoundError as fnfe:
-            logger.critical("%s %s", fnfe.strerror, fnfe.filename)
+            clog.critical("%s %s", fnfe.strerror, fnfe.filename)
             sys.exit(kwargs.get('failure_exit', 1))
 
-    def __init__(self, filename, logobj=None):
-        self.log = logobj
+    def __init__(self, filename):
         if isinstance(filename, str):
             filename = Path(filename)
         if not filename.is_absolute():
@@ -76,10 +77,10 @@ class Config:
 
     def find(self, section, key, default):
         if self.configuration.has_option(section, key):
-            self.log.debug("Found option %s::%s = %s",
+            clog.debug("Found option %s::%s = %s",
                 section, key, self.configuration[section][key])
             return self.configuration[section][key]
-        self.log.debug("Option %s::%s not found", section, key)
+        clog.debug("Option %s::%s not found", section, key)
         return default
 
 if __name__ == "__main__":
@@ -92,11 +93,11 @@ if __name__ == "__main__":
     log.add_options(parser)
     args = parser.parse_args()
 
-    log = log.get_logger('config', args)
+    clog = log.get_logger('config', args)
     if args.section == '.' and args.key == '.':
-        cobj = Config.get_config(args, log, failure_exit=2)
+        cobj = Config.get_config(args, failure_exit=2)
         sys.exit(0)
-    cobj = Config.get_config(args, log)
+    cobj = Config.get_config(args)
     data = cobj.find(args.section, args.key, args.default)
     if data is not None:
         print(data)
