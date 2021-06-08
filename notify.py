@@ -16,6 +16,15 @@ def oneline(text):
     return text.replace('\n', '')
 
 class Notify:
+    @classmethod
+    def add_options(cls, ap, **kwargs):
+        group = ap.add_argument_group('Notification')
+        group.add_argument('--no-notify',
+                            action='store_true',
+                            dest='notification_dontshow',
+                            help="Don't show notification on screen",
+                            required=False)
+
     def __init__(self, config, logger, **kwargs):
         self.show = kwargs.get('show', False)
         self.config = config
