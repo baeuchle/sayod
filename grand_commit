@@ -27,8 +27,8 @@ Notify.add_options(parser)
 args = parser.parse_args()
 
 log = log.get_logger('grand_commit', args)
-config = Config.get_config(args, log)
-notify = Notify(config, log, show=not args.notification_dontshow)
+config = Config.get_config(args)
+notify = Notify(config, show=not args.notification_dontshow)
 git = Git(config.find('git', 'directory', Path.cwd()))
 
 tagname = config.find('git', 'tagname', 'stable')

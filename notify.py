@@ -11,6 +11,7 @@ import textwrap
 
 from config import Config
 import log
+nlog = log.get_logger('notify')
 
 def oneline(text):
     return text.replace('\n', '')
@@ -25,18 +26,17 @@ class Notify:
                             help="Don't show notification on screen",
                             required=False)
 
-    def __init__(self, config, logger, **kwargs):
+    def __init__(self, config, **kwargs):
         self.show = kwargs.get('show', False)
         self.config = config
         self.friendly = self.config.find('info', 'friendly_name',
                              self.config.find('info', 'stripped_name',
                                 'UNKNOWN'))
-        self.log = logger
         self.env = os.environ
         if self.show:
             wns = run(['which', 'notify-send'], check=False, stdout=DEVNULL, stderr=DEVNULL)
             if wns.returncode != 0:
-                logger.critical('Kann notify-send nicht finden, bitte installieren')
+                nlog.critical('Kann notify-send nicht finden, bitte installieren')
                 sys.exit(127)
             if not 'XDG_RUNTIME_DIR' in self.env:
                 self.env['XDG_RUNTIME_DIR'] = '/run/user/{}'.format(os.getuid())
@@ -63,13 +63,14 @@ class Notify:
                 check=False,
                 stdout=DEVNULL,
                 stderr=DEVNULL)
-        self.log.info('NOTIFY-SEND {}'.format(head))
-        self.log.info(long_msg)
+        nlog.info('NOTIFY-SEND %s', head)
+        nlog.info(long_msg)
 
     def notify(self, *msg_args, **kwargs):
         msg = " ".join(msg_args)
         self.notify_local(msg, **kwargs)
         if self.ssh['pipe']:
+            nlog.debug("sshing()")
             returncode = False
             with Popen(['ssh',
                 '-l', self.ssh['user'],
@@ -97,10 +98,10 @@ class Notify:
                      timeout=self.config.find('timeout', 'fatal', 3600000)
                      )
         else:
-            self.log.info('content-type: text/x-plain-log')
-            self.log.info(self.ssh['remote'])
-            self.log.info(kwargs.get('subject', ''))
-            self.log.info(msg)
+            nlog.info('content-type: text/x-plain-log')
+            nlog.info(self.ssh['remote'])
+            nlog.info(kwargs.get('subject', ''))
+            nlog.info(msg)
 
     def success(self, *args):
         self.notify(*args,
@@ -122,8 +123,8 @@ if __name__ == '__main__':
     parser.add_argument('notification_text', nargs='+')
     cmdopts = parser.parse_args()
 
-    log = log.get_logger('notify', cmdopts)
-    config_ = Config(cmdopts.config, log)
-    notify = Notify(config_, log, show=not cmdopts.no_notify)
+    nlog = log.get_logger('notify', cmdopts)
+    config_ = Config(cmdopts.config)
+    notify = Notify(config_, show=not cmdopts.no_notify)
     # TODO notification severity from cmd line
     notify.success(*cmdopts.notification_text)

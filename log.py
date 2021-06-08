@@ -23,14 +23,15 @@ def add_options(ap, **kwargs):
                         required=False
                        )
 
-def get_logger(name, level):
-    if isinstance(level, argparse.Namespace):
-        numeric_level = getattr(logging, level.log_level)
-        if level.log_verbosity:
-            numeric_level -= 10
-        return get_logger(name, numeric_level)
-    logging.basicConfig(
-        level=level,
-        style='{'
-    )
+def get_logger(name, level=None):
+    if level is not None:
+        if isinstance(level, argparse.Namespace):
+            numeric_level = getattr(logging, level.log_level)
+            if level.log_verbosity:
+                numeric_level -= 10
+            return get_logger(name, numeric_level)
+        logging.basicConfig(
+            level=level,
+            style='{'
+        )
     return logging.getLogger(name)

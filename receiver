@@ -16,7 +16,7 @@ if line.startswith("content-type: "):
     line = sys.stdin.readline().strip()
 
 log = log.get_logger('receiver', 30)
-config = Config.get_config(line, log)
+config = Config.get_config(line)
 status_file = config.find('status', 'file', None)
 if status_file is None:
     log.warning("Status file cannot be determined")
