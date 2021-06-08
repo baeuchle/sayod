@@ -92,7 +92,7 @@ if __name__ == "__main__":
     log.add_options(parser)
     args = parser.parse_args()
 
-    log = log.getLogger('config', args)
+    log = log.get_logger('config', args)
     if args.section == '.' and args.key == '.':
         cobj = Config.get_config(args, log, failure_exit=2)
         sys.exit(0)

@@ -1,3 +1,5 @@
+"""provide cmd line option and retrieval for a python logger"""
+
 import logging
 import argparse
 
@@ -21,12 +23,12 @@ def add_options(ap, **kwargs):
                         required=False
                        )
 
-def getLogger(name, level):
+def get_logger(name, level):
     if isinstance(level, argparse.Namespace):
         numeric_level = getattr(logging, level.log_level)
         if level.log_verbosity:
             numeric_level -= 10
-        return getLogger(name, numeric_level)
+        return get_logger(name, numeric_level)
     logging.basicConfig(
         level=level,
         style='{'
