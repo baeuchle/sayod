@@ -1,76 +1,53 @@
-#!/bin/bash
+#!/usr/bin/python3
 
-exec_dir=$(dirname $0)
-source $exec_dir/notify.sh
+"""Creates a grand git commit"""
 
-function cleanup {
-    true
-}
-trap cleanup EXIT
+import argparse
+from datetime import datetime
+from pathlib import Path
+import sys
+from gitversion import Git
+from config import Config
+from notify import Notify
+import log
 
-rc=rc.ini
-nonotify=""
-temponly=0
-while [ $# -gt 0 ]; do
-    case "$1" in
-        -c|--config)
-            shift;
-            if [ -n "$1" ]; then
-                rc=$1
-            fi
-            shift;
-        ;;
-        # this is the standard behavior
-        -n|--notify)
-            shift;
-            nonotify=""
-        ;;
-        # turn off notify-send
-        -no-n|--no-notify)
-            shift;
-            nonotify=1
-        ;;
-        -q|--quiet)
-            shift;
-            verbose=""
-        ;;
-        -v|--verbose)
-            shift;
-            verbose=1
-        ;;
-        *)
-            shift;
-        ;;
-    esac
-done
+parser = argparse.ArgumentParser(description="""Creates a grand commit
 
-source $exec_dir/helpers.sh
-source $exec_dir/find_config.sh
+For a given git repository, this takes all changes since tag "stable"*
+and packs them together into one grand commit.
 
-# find last tag called stable:
-tagname=$($config --section git --key tagname --default stable)
-gitdir=$($config --section git --key directory --default $PWD)
-gitcmd="git -C $gitdir"
+The purpose is to have a fine-grained short-term backup -- the small
+commit -- but only a coarser long-term backup, provided by grand commit.
 
-if $gitcmd tag --sort=refname | grep -q ^$tagname$; then
-    verbose_echo "Resetting to tag $tagname"
-    $gitcmd reset --soft "$tagname";
-    if $gitcmd status --porcelain | grep -qv ^??; then
-        msg=$(date +"$($config --section git --key grand_message --default "Grand backup")")
-        verbose_echo "Committing $msg"
-        $gitcmd commit -qm "$msg"
-    else
-        verbose_echo "No changes"
-    fi
-    $gitcmd tag -d $tagname > /dev/null; # not interested in success notification
-fi
+The grand commit is also mirrored.""",
+    epilog="""*: this name is subject to configuration""")
+Config.add_options(parser)
+log.add_options(parser)
+Notify.add_options(parser)
+args = parser.parse_args()
 
-verbose_echo "Creating new tag $tagname"
-$gitcmd tag $tagname
-for orig in $($config --section git --key origins --default origin); do
-    verbose_echo "Pushing to origin $orig"
-    $gitcmd push -q $orig master
-done
+log = log.get_logger('grand_commit', args)
+config = Config.get_config(args, log)
+notify = Notify(config, log, show=not args.notification_dontshow)
+git = Git(config.find('git', 'directory', Path.cwd()))
 
-notify SUCCESS "Current commit is $($gitcmd log -1 --format=%H)"
-exit 0;
+tagname = config.find('git', 'tagname', 'stable')
+if tagname + "\n" in git.commandlines('tag'):
+    log.info("Resetting to tag %s", tagname)
+    git.command('reset', '--soft', tagname)
+    if git.there_are_untracked_files():
+        msg = config.find('git', 'grand_message', 'Grand backup').format(datetime.now())
+        log.info("Committing %s", msg)
+        git.command('commit', '-qm', msg)
+    else:
+        log.info("No changes")
+    git.command('tag', '-d', tagname)
+
+log.info("Creating new tag %s", tagname)
+git.command('tag', tagname)
+for orig in config.find('git', 'origins', 'origin').split():
+    log.info('Pushing to origin %s', orig)
+    git.command('push', '-q', orig, 'master')
+
+notify.success("Current commit is", git.hash())
+sys.exit(0)
