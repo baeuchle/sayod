@@ -1,110 +1,93 @@
-#!/bin/bash
+#!/usr/bin/python3
 
-exec_dir=$(dirname $0)
-source $exec_dir/notify.sh
+"""Dumps database"""
 
-function cleanup {
-    if [ -z "$mysqlerrfile" ]; then
-        return
-    fi
-    if [ -f "$mysqlerrfile" ]; then
-        rm $mysqlerrfile
-    fi
-}
-trap cleanup EXIT
+import argparse
+import subprocess
+from pathlib import Path
+import sys
+import os
+from gitversion import Git
+from config import Config
+from notify import Notify
+import log
+from small_commit import make_small_commit
 
-rc=rc.ini
-nonotify=""
-flags="$*"
-while [ $# -gt 0 ]; do
-    case "$1" in
-        -c|--config)
-            shift;
-            if [ -n "$1" ]; then
-                rc=$1
-            fi
-            shift;
-        ;;
-        # this is the standard behavior
-        -n|--notify)
-            shift;
-            nonotify=""
-        ;;
-        # turn off notify-send
-        -no-n|--no-notify)
-            shift;
-            nonotify=1
-        ;;
-        -q|--quiet)
-            shift;
-            verbose=""
-        ;;
-        -v|--verbose)
-            shift;
-            verbose=1
-        ;;
-        *)
-            shift;
-        ;;
-    esac
-done
+dblog = log.get_logger('database')
 
-source $exec_dir/helpers.sh
-source $exec_dir/find_config.sh
+def oneline(text):
+    return text.replace("\n", " ")
 
-dbtype=$($config --section database --key type --default sqlite3)
-dumpdir=$($config --section database --key directory --default $PWD)
-gitdir=$($config --section git --key directory --default "$dumpdir")
-gitcmd="git -C $gitdir"
-dbsource=$($config --section database --key source --default '')
-if [ -z "$dbsource" ]; then
-    notify FATAL "Kann Datenquelle nicht bestimmen (sollte in database::source stehen)" 
-    exit 1
-fi
-verbose_echo "Dumping $dbtype database $dbsource to $dumpdir"
+def dumpall(source, directory, notifier, environment, tblcmd, dumpcmd): # pylint: disable=too-many-arguments
+    files = []
+    notifier.start(f'Database dump {source} started')
+    sqltables = subprocess.run(tblcmd, capture_output=True, env=environment, check=False)
+    if sqltables.returncode != 0:
+        notifier.fatal(f"Database table list cannot be read:\n{oneline(sqltables.stderr)}")
+        sys.exit(1)
+    for table_bytes in sqltables.stdout.split():
+        table = table_bytes.decode('utf-8')
+        dblog.info("Dumping table %s", table)
+        target = (directory / table).with_suffix('.sql')
+        with open(target, 'w+b') as outf:
+            with subprocess.Popen([arg.format(table) for arg in dumpcmd],
+                    stdout=outf,
+                    stderr=subprocess.PIPE,
+                    env=environment) as dump_proc:
+                errors = dump_proc.stderr.read()
+                if dump_proc.wait() != 0:
+                    notifier.fatal(f"Table {table} in {source} could not be dumped:\n"
+                                   + oneline(errors))
+        files.append(target)
+    return files
 
-filelist=""
-if [ "$dbtype" == 'sqlite3' ]; then
-    if [ ! -f $dbsource ]; then
-        notify FATAL "Database source $dbsource not found"
-        exit 1;
-    fi
-    notify START "Database dump $dbsource started"
-    tablelist=$(sqlite3 $dbsource .tables)
-    for table in $tablelist; do
-        verbose_echo "Dumping table $table"
-        outfile=$dumpdir/$table.sql
-        sqlite3 $dbsource ".dump $table" > $outfile
-        filelist="$filelist $outfile"
-    done
+def create_dumps(databasetype, source, path, notifier, **kwargs):
+    env = os.environ()
+    tblcmd = []
+    dumpcmd = []
+    if databasetype == 'sqlite3':
+        if not Path(source).exists():
+            notifier.fatal(f'Database source {source} not found')
+            sys.exit(1)
+        tblcmd = ['sqlite3', source, '.tables']
+        dumpcmd = ['sqlite3', source, '.dump {}']
+    if databasetype == 'mysql':
+        env['MYSQL_PWD'] = kwargs.get('password', '')
+        username = kwargs.get('username', '')
+        tblcmd = ['mysql', '--user='+username, source, '-BNe', 'show tables']
+        dumpcmd = ['mysqldump', '--user='+username, '--skip-extended-insert',
+            '--skip-dump-date', source, '{}']
+    return dumpall(source, path, notifier, env, tblcmd, dumpcmd)
 
-elif [ "$dbtype" == 'mysql' ]; then
-    export MYSQL_PWD="$($config --section database --key password --default '')";
-    user=$($config --section database --key user --default $LOGNAME)
-    mysqlerrfile=$(mktemp)
-    tablelist=$(mysql --user=$user $dbsource -BNe "show tables;" 2>$mysqlerrfile)
-    if [ $? -ne 0 ]; then
-        notify FATAL "Database table list cannot be read:\\n$(one_line $mysqlerrfile)"
-        exit 1;
-    fi
-    for table in $tablelist; do
-        verbose_echo "Dumping table $table"
-        outfile=$dumpdir/$table.sql
-        mysqldump --skip-extended-insert --skip-dump-date --user=$user $dbsource $table > $outfile 2>$mysqlerrfile
-        if [ $? -ne 0 ]; then
-            notify FATAL "Table $table in db $dbsource cannot be dumped:\\n$(one_line $mysqlerrfile)"
-            exit 1;
-        fi
-        filelist="$filelist $outfile"
-    done
-    unset MYSQL_PWD
-fi
+parser = argparse.ArgumentParser(description="""Dumps a database""")
+Config.add_options(parser)
+log.add_options(parser)
+Notify.add_options(parser)
+args = parser.parse_args()
 
-if [ "$($config --section git --key commit --default No)" == "No" ]; then
-    notify SUCCESS "Database dump complete without source control"
-    exit 0;
-fi
+dblog = log.get_logger('database', args)
+config = Config.get_config(args)
+notify = Notify(config, show=not args.notification_dontshow)
 
-$exec_dir/small_commit $flags --add "$filelist"
+dbtype = config.find('database', 'type', 'sqlite3')
+dumpdir = config.find('database', 'directory', Path.cwd())
+dumppath = Path(dumpdir)
+git = Git(config.find('git', 'directory', dumpdir))
+dbsource = config.find('database', 'source', None)
+if not dbsource:
+    notify.fatal("Kann Datenquelle nicht bestimmen (sollte in database::source stehen)")
+    sys.exit(1)
 
-exit $?;
+dblog.info("Dumping %s database %s to %s", dbtype, dbsource, dumpdir)
+
+filelist = create_dumps(dbtype, dbsource, dumppath, notify,
+        password=config.find('database', 'password', ''),
+        username=config.find('database', 'user', config.find('env', 'LOGNAME'))
+    )
+
+if not config.find('git', 'commit', False):
+    notify.success("Database dump complete without source control")
+    sys.exit(0)
+
+make_small_commit(config, git, notify, addables=filelist)
+sys.exit(0)
