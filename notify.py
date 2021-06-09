@@ -57,7 +57,7 @@ class Notify:
         if self.show:
             run(['notify-send',
                  '-u', kwargs.get('urgency', 'low'),
-                 '-t', str(kwargs.get('timeout', 10000)),
+                 '-t', str(kwargs.get('timeout', 10*1000)),
                  head, msg],
                 env=self.env,
                 check=False,
@@ -95,7 +95,7 @@ class Notify:
                      + oneline(errs),
                      head='Backup-Fehler {}'.format(self.friendly),
                      urgency='critical',
-                     timeout=self.config.find('timeout', 'fatal', 3600000)
+                     timeout=self.config.find('timeout', 'fatal', 60*60*1000)
                      )
         else:
             nlog.info('content-type: text/x-plain-log')
@@ -105,14 +105,35 @@ class Notify:
 
     def success(self, *args):
         self.notify(*args,
-               subject='SUCCESS',
-               urgency='low',
-               head='Backup {}: Erfolg'.format(self.friendly),
-               timeout=int(self.config.find('timeout', 'success',
-                           self.config.find('notify', 'timeout', 4000)))
-              )
+            subject='SUCCESS',
+            urgency='low',
+            head='Backup {}: Erfolg'.format(self.friendly),
+            timeout=int(self.config.find('timeout', 'success',
+                        self.config.find('notify', 'timeout', 4*1000)))
+            )
 
-    # TODO remaining levels ABORT, DEADTIME, FAIL, FATAL, START, *
+    def fatal(self, *args):
+        self.notify(*args,
+            subject='WTF!',
+            urgency='critical',
+            head='Backup-Fehler (Fatal): {}'.format(self.friendly),
+            timeout=int(self.config.find('timeout', 'fatal',
+                        self.config.find('notify', 'timeout', 60*60*1000)))
+            )
+
+    def start(self, *args):
+        self.notify(*args,
+            subject='START',
+            urgency='low',
+            head='Starte Backup {}'.format(self.friendly),
+            timeout=int(self.config.find('timeout', 'start',
+                        self.config.find('notify', 'timeout', 4*1000)))
+            )
+
+    # TODO remaining level ABORT
+    # TODO remaining level DEADTIME
+    # TODO remaining level FAIL
+    # TODO remaining level *
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="""Show and send a notification""")
