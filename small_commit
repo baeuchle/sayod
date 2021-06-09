@@ -11,37 +11,42 @@ from config import Config
 from notify import Notify
 import log
 
-parser = argparse.ArgumentParser(description="""Creates a small commit""")
-parser.add_argument('--add', '-a',
-    action='append',
-    required=False,
-    default=[]
-)
-Config.add_options(parser)
-log.add_options(parser)
-Notify.add_options(parser)
-args = parser.parse_args()
+sclog = log.get_logger('small_commit')
 
-log = log.get_logger('small_commit', args)
-config = Config.get_config(args)
-notify = Notify(config, show=not args.notification_dontshow)
-git = Git(config.find('git', 'directory', Path.cwd()))
+def make_small_commit(conf, gitobj, notifier, addables):
+    for pattern in conf.find('git', 'add', '').split():
+        path = Path(pattern)
+        addables.extend(path.parent.glob(path.name))
+    for curr_file in addables:
+        sclog.info("Adding %s", curr_file)
+        gitobj.command('add', curr_file)
+    if conf.find('git', 'add_all', False):
+        sclog.info("Adding all tracked files")
+        gitobj.command('add', '-u')
 
-addable_files = args.add
-for pattern in config.find('git', 'add', '').split():
-    path = Path(pattern)
-    addable_files.extend(path.parent.glob(path.name))
-for curr_file in addable_files:
-    log.info("Adding %s", curr_file)
-    git.command('add', curr_file)
-if config.find('git', 'add_all', False):
-    log.info("Adding all tracked files")
-    git.command('add', '-u')
+    if gitobj.there_are_untracked_files():
+        msg = conf.find('git', 'small_message', 'small backup').format(datetime.now())
+        sclog.info("Commiting %s", msg)
+        gitobj.command('commit', '-qm', msg)
 
-if git.there_are_untracked_files():
-    msg = config.find('git', 'small_message', 'small backup').format(datetime.now())
-    log.info("Commiting %s", msg)
-    git.command('commit', '-qm', msg)
+    notifier.success("Current commit is", gitobj.hash())
 
-notify.success("Current commit is", git.hash())
-sys.exit(0)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="""Creates a small commit""")
+    parser.add_argument('--add', '-a',
+        action='append',
+        required=False,
+        default=[]
+    )
+    Config.add_options(parser)
+    log.add_options(parser)
+    Notify.add_options(parser)
+    args = parser.parse_args()
+
+    sclog = log.get_logger('small_commit', args)
+    config = Config.get_config(args)
+    notify = Notify(config, show=not args.notification_dontshow)
+    git = Git(config.find('git', 'directory', Path.cwd()))
+
+    make_small_commit(config, git, notify, args.add)
+    sys.exit(0)
