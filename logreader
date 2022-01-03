@@ -6,35 +6,36 @@ were found"""
 import sys
 
 from config import Config
-from taggedlog import TaggedLog
 import log
+from taggedlog import TaggedLog
 
-line = sys.stdin.readline().strip()
-content_type = "text/x-plain-ask"
-if line.startswith("content-type: "):
-    content_type = line[len("content-type: "):]
+lrlog = log.get_logger('logreader')
+
+if __name__ == '__main__':
     line = sys.stdin.readline().strip()
+    content_type = "text/x-plain-ask"
+    if line.startswith("content-type: "):
+        content_type = line[len("content-type: "):]
+        line = sys.stdin.readline().strip()
 
-log = log.get_logger('logreader', 30)
-config = Config.get_config(line)
+    config = Config.get_config(line)
 
+    status_file = config.find('status', 'file', None)
+    if status_file is None:
+        lrlog.warning("Status file cannot be determined")
+        sys.exit(1)
+    log_obj = TaggedLog(status_file, 'r')
 
-status_file = config.find('status', 'file', None)
-if status_file is None:
-    log.warning("Status file cannot be determined")
-    sys.exit(1)
-log_obj = TaggedLog(status_file, 'r')
+    subject_list = []
+    for line in sys.stdin:
+        if line.strip() == "":
+            break
+        subject_list.append(line.strip())
 
-subject_list = []
-for line in sys.stdin:
-    if line.strip() == "":
-        break
-    subject_list.append(line.strip())
+    action = 'list'
+    for line in sys.stdin:
+        action = line.strip()
 
-action = 'list'
-for line in sys.stdin:
-    action = line.strip()
-
-entries = log_obj.find(subjects=subject_list, action=action)
-print(entries)
-sys.exit(0)
+    entries = log_obj.find(subjects=subject_list, action=action)
+    print(entries)
+    sys.exit(0)
