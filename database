@@ -7,11 +7,12 @@ import subprocess
 from pathlib import Path
 import sys
 import os
-from gitversion import Git
+
+from small_commit import make_small_commit
 from config import Config
 from notify import Notify
 import log
-from small_commit import make_small_commit
+from gitversion import Git
 
 dblog = log.get_logger('database')
 

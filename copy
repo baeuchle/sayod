@@ -1,247 +1,111 @@
-#!/bin/bash
+#!/usr/bin/python3
 
-exec_dir=$(dirname $0)
-source $exec_dir/notify.sh
+"""Copy stuff"""
 
-# may be used as provide script if user interaction is required.
-function ask_provide {
-    local _timeout=$1;
-    shift;
-    local _question="$*"
-    zenity \
-        --question \
-        --timeout=$_timeout \
-        --title "Backup $friendly_rc" \
-        --text="$_question" \
-        --width=600
-    case "$?" in
-        0)
-            return 0
-        ;;
-        1)
-            notify ABORT "Bereitstellen abgebrochen"
-            exit 0
-        ;;
-        5)
-            notify ABORT "Bereitstellen dauerte zu lange"
-            exit 0
-        ;;
-        *)
-            return $?
-        ;;
-    esac
-}
+import argparse
+import datetime
+from contextlib import ExitStack
+from pathlib import Path
+import subprocess
+import sys
 
-# may be used in provide_unless directives
-function dir_exists {
-    [ -d "$*" ]
-}
+from config import Config
+import log
+from notify import Notify, oneline
+from provider import ProviderFactory, ProvideError
+import remotereader
 
-# may be used in provide_unless directives
-function is_mountpoint {
-    local _dir="$*"
-    if [ "$_dir" != "/" ]; then
-        _dir=${_dir%/}
-    fi
-    if [ -z "$_dir" ]; then return 2; fi
-    mount | grep -q " $_dir "
-}
+clog = log.get_logger('copy')
 
-function cleanup {
-    for part in target source; do
-        local _clean_cmd=$($config --section $part --key release --default '')
-        if [ -n "$_clean_cmd" ]; then
-            $_clean_cmd
-        fi
-    done
-    if [ -f "$rsyncerrfile" ]; then
-        rm "$rsyncerrfile"
-    fi
-    if [ -f "$rsynclogfile" ]; then
-        if [[ $rsynclogfile == /tmp/* ]]; then
-            rm "$rsynclogfile"
-        fi
-    fi
-}
-trap cleanup EXIT
+parser = argparse.ArgumentParser(
+    description="""Creates Backups and notifies about the success of failure thereof."""
+)
+parser.add_argument('--force', '-f', default=False, action='store_true', required=False)
+Config.add_options(parser)
+log.add_options(parser)
+Notify.add_options(parser)
+args = parser.parse_args()
 
-function readlog {
-    local _loghost=$($config --section notify --key host --default localhost)
-    local _loguser=$($config --section notify --key user --default $LOGNAME)
-    local _logport=$($config --section notify --key port --default 22)
-    local _logremote=$($config --section notify --key remotekey --default $stripped_rc)
-    local _logmsg="content-type: text/x-plain-ask\n$_logremote\nSUCCESS\n\nlast"
-    local _readlogerr=$(mktemp)
-    echo -e "$_logmsg" | \
-        ssh $_loguser@$_loghost -p $_logport logreader | \
-        awk '{print $1}' \
-        2>$_readlogerr || \
-        ( \
-            notify-send -u low -t $(get_timeout fail 3000) "Backup-Fehler $friendly_rc" "Kann entferntes Log nicht lesen:\\n$(one_line $_readlogerr)";
-            echo "0";
-            false
-        ) && \
-        true
-}
+clog = log.get_logger('copy', args)
+config = Config.get_config(args)
+notify = Notify(config, show=not args.notification_dontshow)
 
-rc=rc.ini
-force=""
-while [ $# -gt 0 ]; do
-    case "$1" in
-        -c|--config)
-            shift;
-            if [ -n "$1" ]; then
-                rc=$1
-            fi
-            shift;
-        ;;
-        -f|--force)
-            shift;
-            force="yes"
-        ;;
-        -q|--quiet)
-            shift;
-            verbose=""
-        ;;
-        -v|--verbose)
-            shift;
-            verbose=1
-        ;;
-        *)
-            shift;
-        ;;
-    esac
-done
+deadtime = int(config.find('rsync', 'deadtime', 0))
+if deadtime > 0:
+    last_success = remotereader.remote(config, notify, 'SUCCESS', remotereader.LAST)
+    tage = (datetime.datetime.today() - last_success).days
+    if tage <= deadtime:
+        if not args.force:
+            notify.deadtime(f"Letztes erfolgreiches Backup war vor weniger als {deadtime} Tagen")
+            sys.exit(0)
+        clog.info("Deadtime ignored because --force was specified")
+    else:
+        clog.info("Deadtime is over")
+else:
+    clog.info("No deadtime given")
 
-source $exec_dir/helpers.sh
+notify.start("Starte Backup")
 
-# make sure there is a display for zenity
-if [ -z "$DISPLAY" ]; then
-    export DISPLAY=:0.0
-fi
+source = config.find('source', 'path', None)
+if not source:
+    notify.fatal('Kann Quellpfad nicht bestimmen (sollte in source::path stehen')
+    sys.exit(127)
+target = config.find('target', 'path', None)
+if not target:
+    notify.fatal('Kann Zielpfad nicht bestimmen (sollte in target::path stehen')
+    sys.exit(127)
+exclude_file = config.find('source', 'exclude_file', None)
+if not exclude_file:
+    notify.fatal("Kann nicht bestimmen, welche Dateien vom Backup "
+            + "ausgeschlossen werden sollen (sollte in source::exclude_file stehen)")
+clog.info("Source %s", source)
+clog.info("Target %s", target)
+clog.info("Exclude file %s", exclude_file)
 
-source $exec_dir/find_config.sh
+rsync_oneletters = '-via'
+if config.find('rsync', 'no_cross', '') == '-x':
+    rsync_oneletters = '-viax'
 
-deadtime=$($config --section rsync --key deadtime --default 0)
-if [ $deadtime -gt 0 ]; then
-    last_string="$(readlog SUCCESS last)"
-    if [ "$last_string" == "None" ]; then
-        last_string="Jan 1 1970"
-    fi
-    last_success=$(date +%s -d "$last_string")
-    tage=$(( ($(date +%s) - $last_success) / 86400 ))
-    if [ $tage -lt $deadtime ]; then
-        if [ -z "$force" ]; then
-            notify DEADTIME "Letztes erfolgreiches Backup war vor weniger als $deadtime Tagen"
-            exit 0;
-        fi
-        verbose_echo "Deadtime ignored because --force was specified"
-    else
-        verbose_echo "Deadtime is over"
-    fi
-else
-    verbose_echo "No deadtime given"
-fi
-
-notify START "Starte Backup"
-
-# This part should do the actual copying.
-source=$($config --section source --key path --default '')
-if [ -z "$source" ]; then
-    notify FATAL "Kann Quellpfad nicht bestimmen (sollte in source::path stehen)"
-    exit 127;
-fi
-verbose_echo "Source $source"
-target=$($config --section target --key path --default '')
-if [ -z "$target" ]; then
-    notify FATAL "Kann Zielpfad nicht bestimmen (sollte in target::path stehen)"
-    exit 127;
-fi
-verbose_echo "Target $target"
-exclude_file=$($config --section source --key exclude_file --default '')
-if [ -z "$exclude_file" ]; then
-    notify FATAL "Kann nicht bestimmen, welche Dateien vom Backup ausgeschlossen werden sollen (sollte in source::exclude_file stehen)"
-    exit 127;
-fi
-if [ ! -r "$exclude_file" ]; then
-    notify FATAL "Kann Datei mit Ausschlussliste $exclude_file nicht lesen"
-    exit 127;
-fi
-verbose_echo "Exclude file $exclude_file"
-
-for part in target source; do
-    provide_exe=$($config --section $part --key provide --default '')
-    provide_unless=$($config --section $part --key provide_unless --default false)
-    if [ -n "$provide_exe" ]; then
-        if ! $provide_unless; then
-            verbose_echo "Need to provide $part via '$provide_exe'"
-            eval $provide_exe
-            case "$?" in
-                0) # normal ok
-                ;;
-                *)
-                    notify FAIL "Bereitstellen von $part mittels $provide_exe fehlgeschlagen ($?)"
-                    exit 2
-                ;;
-            esac
-        else
-            verbose_echo "No need to provide $part"
-        fi
-    fi
-done
-
-privilege=$($config --section rsync --key privilege --default '')
-if [ "$privilege" != "sudo" ]; then
-    privilege=""
-fi
-no_cross=$($config --section rsync --key no_cross --default '')
-if [ "$no_cross" != "-x" ]; then
-    no_cross=""
-fi
-rsynclogfile=$(date +"$($config --section rsync --key outfile --default '')")
-if [ -z "$rsynclogfile" ]; then
-    rsynclogfile=$(mktemp)
-fi
-rsyncerrfile=$(mktemp)
-verbose_echo "RSYNC privilege $privilege"
-verbose_echo "RSYNC no_cross $no_cross"
-verbose_echo "RSYNC log file $rsynclogfile"
-verbose_echo "RSYNC err file $rsyncerrfile"
-$privilege \
-rsync --partial -via \
-        $no_cross \
-        --exclude-from="$exclude_file" \
-        $source \
-        $target \
-        > $rsynclogfile \
-        2> $rsyncerrfile
-rsync_error=$?
-
-loglines=$(wc -l < $rsynclogfile)
-log_in_one_line=$(one_line "$rsynclogfile")
-errlines=$(wc -l < $rsyncerrfile)
-err_in_one_line=$(one_line $rsyncerrfile)
-verbose_echo "RSYNC done, exit code $rsync_error, $loglines log lines, $errlines error lines"
-case $rsync_error in
-    0)
-        notify SUCCESS "output in $rsynclogfile\\n$err_in_one_line";
-        exit 0;;
-    23|24)
-        notify SUCCESS "Nicht alle Quelldateien konnten gelesen werden\\n$rsynclogfile\\n$err_in_one_line";
-        exit 0;;
-    20)
-        notify ABORT "Kopiervorgang abgebrochen $loglines/$errlines Zeilen\\n$err_in_one_line";
-        exit 0;;
-    [1246])
-        notify FATAL "rsync falsch benutzt $rsync_error\\n$err_in_one_line";
-        exit 1;;
-    3|5|10|11|12|13|14|21|22)
-        notify FAIL "rsync copy error $rsync_error\\n$err_in_one_line";
-        exit 2;;
-    25|40|35)
-        notify FAIL "rsync other error $rsync_error\\n$err_in_one_line";
-        exit 3;;
-    *)
-        notify FAIL "Unknown rsync error $rsync_error\\n$err_in_one_line";
-        exit $rsync_error;;
-esac
+providers = config.find('rsync', 'providers', '').split()
+with ExitStack() as es:
+    for prv in providers:
+        try:
+            es.enter_context(ProviderFactory(prv, config))
+        except ProvideError as pe:
+            raise SystemExit(1) from pe
+    copy_args = ['rsync',
+            '--partial',
+            rsync_oneletters,
+            f'--exclude-from={exclude_file}',
+            source,
+            target
+        ]
+    if config.find('rsync', 'privilege', '') == 'sudo'):
+        copy_args.insert(0, 'sudo')
+    cpresult = subprocess.run(copy_args, text=True, capture_output=True, check=False)
+    err_len = cpresult.stderr.strip().count('\n')
+    error = oneline(cpresult.stderr)
+    out_len = cpresult.stdout.strip().count('\n')
+    clog.info("RSYNC done, exit code %d, %d log lines, %d error lines",
+            cpresult.returncode, out_len, err_len)
+    outfile = datetime.datetime.now().strftime(config.find('rsync', 'outfile', ''))
+    outstr = f"{out_len} output lines"
+    code = f"{cpresult.returncode}\n{error}"
+    if outfile:
+        with Path(outfile).open("w+") as out:
+            out.write(cpresult.stdout)
+        outstr = f"output in {outfile}"
+    if cpresult.returncode == 0:
+        notify.success(f"{outstr}\n{error}")
+    elif cpresult.returncode in (23, 24):
+        notify.success(f"Nicht alle Quelldateien konnten gelesen werden\n{outstr}\n{error}")
+    elif cpresult.returncode == 20:
+        notify.abort(f"Kopiervorgang abgebrochen {out_len}/{err_len} Zeilen\n{error}")
+    elif cpresult.returncode in (1, 2, 4, 6):
+        notify.fatal(f"rsync falsch benutzt {code}")
+    elif cpresult.returncode in (3, 5, 10, 11, 12, 13, 14, 21, 22):
+        notify.fail(f"rsync copy error {code}")
+    elif cpresult.returncode in (25, 35, 40):
+        notify.fail(f"rsync other error {code}")
+    else:
+        notify.fail(f"Unknown rsync error {code}")

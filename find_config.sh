@@ -6,7 +6,7 @@ config="$exec_dir/config.py --config $stripped_rc"
 if $config --section . --key . --default .; then
     verbose_echo "Config file $stripped_rc found"
 else
-    notify FATAL "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei $stripped_rc nicht gefunden"
+    $notify_py --level fatal "Konfigurationsscript kann nicht gestartet werden oder Konfigurationsdatei $stripped_rc nicht gefunden"
     exit 127;
 fi
 
