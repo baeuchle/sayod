@@ -46,14 +46,15 @@ class Notify:
             'port': self.config.find('notify', 'port', 22),
             'pipe': self.config.find('notify', 'pipe', False),
             'remote': self.config.find('notify', 'remotekey',
-                self.config.find('info', 'stripped_name', self.friendly))
+                self.config.find('info', 'stripped_name',
+                    self.config.friendly))
         }
         if self.ssh['pipe'] in ('no', 'nein', 'false'):
             self.ssh['pipe'] = False
 
     def notify_local(self, long_msg, **kwargs):
         msg = textwrap.fill(long_msg, width=72)[0:131071]
-        head = kwargs.get('head', "NOTIFICATION")
+        head = kwargs.get('head', "NOTIFICATION").format(self.config.friendly)
         if self.show:
             run(['notify-send',
                  '-u', kwargs.get('urgency', 'low'),
@@ -93,9 +94,9 @@ class Notify:
                 self.notify_local(
                      'Kann Meldungen nicht auf dem Server schreiben:\n'
                      + oneline(errs),
-                     head='Backup-Fehler {}'.format(self.friendly),
+                     head='Backup-Fehler {}',
                      urgency='critical',
-                     timeout=self.config.find('timeout', 'fatal', 60*60*1000)
+                     timeout=self.config.timeout('fatal', 60*60*1000)
                      )
         else:
             nlog.info('content-type: text/x-plain-log')
@@ -107,31 +108,35 @@ class Notify:
         self.notify(*args,
             subject='SUCCESS',
             urgency='low',
-            head='Backup {}: Erfolg'.format(self.friendly),
-            timeout=int(self.config.find('timeout', 'success',
-                        self.config.find('notify', 'timeout', 4*1000)))
+            head='Backup {}: Erfolg',
+            timeout=self.config.timeout('success', 4*1000)
             )
 
     def fatal(self, *args):
         self.notify(*args,
             subject='WTF!',
             urgency='critical',
-            head='Backup-Fehler (Fatal): {}'.format(self.friendly),
-            timeout=int(self.config.find('timeout', 'fatal',
-                        self.config.find('notify', 'timeout', 60*60*1000)))
+            head='Backup-Fehler (Fatal): {}',
+            timeout=self.config.timeout('fatal', 60*60*1000)
             )
 
     def start(self, *args):
         self.notify(*args,
             subject='START',
             urgency='low',
-            head='Starte Backup {}'.format(self.friendly),
-            timeout=int(self.config.find('timeout', 'start',
-                        self.config.find('notify', 'timeout', 4*1000)))
+            head='Starte Backup {}',
+            timeout=self.config.timeout('start', 4*1000)
+            )
+
+    def deadtime(self, *args):
+        self.notify(*args,
+            subject='DEADTIME',
+            urgency='low',
+            head='Backup {}: Braucht noch nicht wieder',
+            timeout=self.config.timeout('deadtime', 2*1000)
             )
 
     # TODO remaining level ABORT
-    # TODO remaining level DEADTIME
     # TODO remaining level FAIL
     # TODO remaining level *
 

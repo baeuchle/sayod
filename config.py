@@ -75,6 +75,15 @@ class Config:
         ini_obj.read(variants)
         self.configuration = ini_obj
 
+    @property
+    def friendly(self):
+        return self.find('info', 'friendly_name',
+                    self.find('info', 'stripped_name',
+                        'UNKNOWN BACKUP JOB'))
+
+    def timeout(self, subject, default):
+        return int(self.find('timeout', subject, default))
+
     def find(self, section, key, default):
         if self.configuration.has_option(section, key):
             clog.debug("Found option %s::%s = %s",
@@ -82,6 +91,9 @@ class Config:
             return self.configuration[section][key]
         clog.debug("Option %s::%s not found", section, key)
         return default
+
+    def find_section(self, section):
+        return self.configuration[section]
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Returns configuration parameters')
