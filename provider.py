@@ -2,14 +2,15 @@
     Tasks for providing source and target(s).
 """
 
-import subprocess
+import os
+from pathlib import Path
 try:
     from PySide2.QtWidgets import QMessageBox, QApplication
     from PySide2.QtCore import QTimer
 except ImportError:
     QApplication = None
-import os
 import select
+import subprocess
 import sys
 
 import log
@@ -85,6 +86,25 @@ class Provider:
     def failure(cls, reason=""):
         return subprocess.CompletedProcess(args=['false'], returncode=1, stdout="", stderr=reason)
 
+class DirectoryProvider(Provider):
+    def __init__(self, name, config):
+        super().__init__(name, config)
+        self.dir = Path(config.get('dir', ''))
+
+    def acquire(self):
+        try:
+            self.dir.mkdir(exist_ok=False)
+            return self.success()
+        except FileExistsError as fee:
+            return self.failure(str(fee))
+
+    def release(self):
+        try:
+            self.dir.rmdir()
+            return self.success()
+        except OSError as oe:
+            return self.failure(str(oe))
+
 class ManualProvider(Provider):
     def __init__(self, name, config):
         super().__init__(name, config)
@@ -152,4 +172,6 @@ def ProviderFactory(name, config):
         return ManualProvider(name, config.find_section(name))
     if action == 'sshfs':
         return SshFsProvider(name, config.find_section(name))
+    if action == 'mkdir':
+        return DirectoryProvider(name, config.find_section(name))
     raise NotImplementedError(f"Provider for {action}")
