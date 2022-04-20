@@ -18,9 +18,22 @@ class Tester:
         tlog.info("testing %s", self.command)
         return True
 
+    def default_postrequisite(self):
+        return self
+
 class NoneTester(Tester):
     def __init__(self):
         super().__init__("<None>")
+
+class AlwaysTester(Tester):
+    def __init__(self):
+        super().__init__("<Always>")
+
+    def test(self):
+        return False
+
+    def default_postrequisite(self):
+        return NoneTester()
 
 class MountpointTester(Tester):
     def __init__(self, path):
@@ -44,6 +57,8 @@ def TesterFactory(command):
     words = command.split()
     if not words or words[0].lower() == "none":
         return NoneTester()
+    if words[0].lower() == 'always':
+        return AlwaysTester()
     if words[0] == 'mountpoint':
         return MountpointTester(' '.join(words[1:]))
     if words[0] == 'is_dir':

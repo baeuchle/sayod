@@ -36,7 +36,7 @@ class Provider:
         if 'postrequisite' in config:
             self.post = TesterFactory(config['postrequisite'])
         else:
-            self.post = self.goal
+            self.post = self.goal.default_postrequisite()
         plog.debug("Provider %s created", name)
         self.provided = False
 
