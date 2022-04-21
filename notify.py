@@ -14,13 +14,13 @@ import log
 nlog = log.get_logger('notify')
 
 def oneline(text):
-    return text.replace('\n', '')
+    return text.strip().replace('\n', ' ')
 
 class Notify:
     @classmethod
     def add_options(cls, ap):
         group = ap.add_argument_group('Notification')
-        group.add_argument('--no-notify',
+        group.add_argument('--no-notify', '-N',
                             action='store_true',
                             dest='notification_dontshow',
                             help="Don't show notification on screen",
@@ -136,21 +136,33 @@ class Notify:
             timeout=self.config.timeout('deadtime', 2*1000)
             )
 
-    # TODO remaining level ABORT
-    # TODO remaining level FAIL
-    # TODO remaining level *
+    def abort(self, *args):
+        self.notify(*args,
+            subject='ABORT',
+            urgency='normal',
+            head='Backup {} abgebrochen',
+            timeout=self.config.timeout('abort', 10*1000)
+            )
+
+    def fail(self, *args):
+        self.notify(*args,
+            subject='FAIL',
+            urgency='critical',
+            head='Backup {}: Fehler',
+            timeout=self.config.timeout('fail', 60*1000)
+            )
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="""Show and send a notification""")
+    Notify.add_options(parser)
     Config.add_options(parser)
     log.add_options(parser)
-    parser.add_argument('--no-notify', '-N', required=False, default=False, action='store_true')
-    # parser.add_argument('--subject', required=True)
+    parser.add_argument('--level', required=False,
+            choices='abort deadtime fail fatal start success'.split())
     parser.add_argument('notification_text', nargs='+')
     cmdopts = parser.parse_args()
 
     nlog = log.get_logger('notify', cmdopts)
     config_ = Config(cmdopts.config)
-    notify = Notify(config_, show=not cmdopts.no_notify)
-    # TODO notification severity from cmd line
-    notify.success(*cmdopts.notification_text)
+    notify = Notify(config_, show=not cmdopts.notification_dontshow)
+    getattr(notify, cmdopts.level)(*cmdopts.notification_text)
