@@ -80,7 +80,7 @@ with ExitStack() as es:
             source,
             target
         ]
-    if config.find('rsync', 'privilege', '') == 'sudo'):
+    if config.find('rsync', 'privilege', '') == 'sudo':
         copy_args.insert(0, 'sudo')
     cpresult = subprocess.run(copy_args, text=True, capture_output=True, check=False)
     err_len = cpresult.stderr.strip().count('\n')

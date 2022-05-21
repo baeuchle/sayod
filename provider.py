@@ -115,7 +115,7 @@ class ManualProvider(Provider):
     def acquire(self):
         if not super().acquire():
             return self.failure()
-        if QApplication and os.environ['DISPLAY']:
+        if QApplication and os.environ.get('DISPLAY', False):
             return self.dialog_()
         return self.commandline_()
 
