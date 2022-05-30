@@ -134,7 +134,8 @@ class ManualProvider(Provider):
         print(self.message + " [yes or ja to confirm]")
         i, _, _ = select.select([sys.stdin], [], [], self.timeout)
         if i:
-            if sys.stdin.readline().strip().lower()[0] in 'yj':
+            inp = sys.stdin.readline().strip().lower()
+            if inp and inp[0] in 'yj':
                 return self.success()
             return self.failure("Manual abort")
         return self.failure("Timeout")
