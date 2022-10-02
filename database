@@ -43,7 +43,7 @@ def dumpall(source, directory, notifier, environment, tblcmd, dumpcmd): # pylint
     return files
 
 def create_dumps(databasetype, source, path, notifier, **kwargs):
-    env = os.environ()
+    env = os.environ
     tblcmd = []
     dumpcmd = []
     if databasetype == 'sqlite3':
@@ -83,7 +83,7 @@ dblog.info("Dumping %s database %s to %s", dbtype, dbsource, dumpdir)
 
 filelist = create_dumps(dbtype, dbsource, dumppath, notify,
         password=config.find('database', 'password', ''),
-        username=config.find('database', 'user', config.find('env', 'LOGNAME'))
+        username=config.find('database', 'user', config.find('env', 'LOGNAME', ''))
     )
 
 if not config.find('git', 'commit', False):
