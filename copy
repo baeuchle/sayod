@@ -47,9 +47,22 @@ else:
 notify.start("Starte Backup")
 
 source = config.find('source', 'path', None)
+sources = [source]
 if not source:
-    notify.fatal('Kann Quellpfad nicht bestimmen (sollte in source::path stehen')
-    sys.exit(127)
+    source_list = config.find('source', 'list', None)
+    if not source_list:
+        notify.fatal('Kann Quellpfad nicht bestimmen (sollte in source::path stehen)')
+        clog.critical('source::path or source::list should be present')
+        sys.exit(127)
+    try:
+        sls = config.find_section(source_list)
+    except KeyError as ke:
+        notify.fatal(f'Kann Quellenliste nicht finden ({source_list}::*)')
+        raise SystemExit(127) from ke
+    sources = []
+    for path in sls.values():
+        clog.debug('Appending path %s', path)
+        sources.append(path)
 target = config.find('target', 'path', None)
 if not target:
     notify.fatal('Kann Zielpfad nicht bestimmen (sollte in target::path stehen')
@@ -58,7 +71,7 @@ exclude_file = config.find('source', 'exclude_file', None)
 if not exclude_file:
     notify.fatal("Kann nicht bestimmen, welche Dateien vom Backup "
             + "ausgeschlossen werden sollen (sollte in source::exclude_file stehen)")
-clog.info("Source %s", source)
+clog.info("Sources %s", '; '.join(sources))
 clog.info("Target %s", target)
 clog.info("Exclude file %s", exclude_file)
 
@@ -77,7 +90,7 @@ with ExitStack() as es:
             '--partial',
             rsync_oneletters,
             f'--exclude-from={exclude_file}',
-            source,
+            *sources,
             target
         ]
     if config.find('rsync', 'privilege', '') == 'sudo':
@@ -98,7 +111,7 @@ with ExitStack() as es:
     if cpresult.returncode == 0:
         notify.success(f"{outstr}\n{error}")
     elif cpresult.returncode in (23, 24):
-        notify.success(f"Nicht alle Quelldateien konnten gelesen werden\n{outstr}\n{error}")
+        notify.success(f"Nicht alle Quelldateien konnten gelesen werden {cpresult.returncode}\n{outstr}\n{error}")
     elif cpresult.returncode == 20:
         notify.abort(f"Kopiervorgang abgebrochen {out_len}/{err_len} Zeilen\n{error}")
     elif cpresult.returncode in (1, 2, 4, 6):
