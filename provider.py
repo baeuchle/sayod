@@ -147,12 +147,15 @@ class SshFsProvider(Provider):
         self.host = config.get('host', '127.0.0.1')
         self.port = config.get('remote_port', '22')
         self.local_path = config.get('local_path', '/home')
+        self.remote_path = config.get('remote_path', None)
         self.mountopts = config.get('mountopts', '').split()
 
     def acquire(self):
         if not super().acquire():
             return self.failure()
         host = self.host + ':'
+        if self.remote_path:
+            host = f'{host}{self.remote_path}'
         if self.user:
             host = f'{self.user}@{host}'
         command = ['sshfs', host, '-p', self.port, self.local_path]
