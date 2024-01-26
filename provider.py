@@ -5,10 +5,14 @@
 import os
 from pathlib import Path
 try:
-    from PySide2.QtWidgets import QMessageBox, QApplication
-    from PySide2.QtCore import QTimer
+    from PySide6.QtWidgets import QMessageBox, QApplication
+    from PySide6.QtCore import QTimer
 except ImportError:
-    QApplication = None
+    try:
+        from PySide2.QtWidgets import QMessageBox, QApplication
+        from PySide2.QtCore import QTimer
+    except ImportError:
+        QApplication = None
 import select
 import subprocess
 import sys
