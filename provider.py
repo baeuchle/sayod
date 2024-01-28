@@ -5,10 +5,14 @@
 import os
 from pathlib import Path
 try:
-    from PySide2.QtWidgets import QMessageBox, QApplication
-    from PySide2.QtCore import QTimer
+    from PySide6.QtWidgets import QMessageBox, QApplication
+    from PySide6.QtCore import QTimer
 except ImportError:
-    QApplication = None
+    try:
+        from PySide2.QtWidgets import QMessageBox, QApplication
+        from PySide2.QtCore import QTimer
+    except ImportError:
+        QApplication = None
 import select
 import subprocess
 import sys
@@ -140,13 +144,23 @@ class ManualProvider(Provider):
             return self.failure("Manual abort")
         return self.failure("Timeout")
 
-class SshFsProvider(Provider):
+class MountProvider(Provider):
+    def __init__(self, name, config):
+        super().__init__(name, config)
+        self.local_path = config.get('local_path', '/home')
+
+    def release(self):
+        if not super().release():
+            return self.failure()
+        command = ['fusermount', '-u', self.local_path]
+        return subprocess.run(command, text=True, capture_output=True, check=False)
+
+class SshFsProvider(MountProvider):
     def __init__(self, name, config):
         super().__init__(name, config)
         self.user = config.get('user', '')
         self.host = config.get('host', '127.0.0.1')
         self.port = config.get('remote_port', '22')
-        self.local_path = config.get('local_path', '/home')
         self.remote_path = config.get('remote_path', None)
         self.mountopts = config.get('mountopts', '').split()
 
@@ -170,12 +184,40 @@ class SshFsProvider(Provider):
         command = ['fusermount', '-u', self.local_path]
         return subprocess.run(command, text=True, capture_output=True, check=False)
 
+class AdbFsProvider(Provider):
+    def __init__(self, name, config):
+        super().__init__(name, config)
+        self.mountopts = config.get('mountopts', '').split()
+
+    def acquire(self):
+        if not super().acquire():
+            return self.failure()
+        host = self.host + ':'
+        if self.remote_path:
+            host = f'{host}{self.remote_path}'
+        if self.user:
+            host = f'{self.user}@{host}'
+        command = ['adbfs']
+        for mo in self.mountopts:
+            command.append('-o')
+            command.append(mo)
+        command.append(self.local_path)
+        return subprocess.run(command, text=True, capture_output=True, check=False)
+
+    def release(self):
+        if not super().release():
+            return self.failure()
+        command = ['fusermount', '-u', self.local_path]
+        return subprocess.run(command, text=True, capture_output=True, check=False)
+
 def ProviderFactory(name, config):
     action = config.find(name, 'action', '')
     if action == 'manual':
         return ManualProvider(name, config.find_section(name))
     if action == 'sshfs':
         return SshFsProvider(name, config.find_section(name))
+    if action == 'adbfs':
+        return AdbFsProvider(name, config.find_section(name))
     if action == 'mkdir':
         return DirectoryProvider(name, config.find_section(name))
     raise NotImplementedError(f"Provider for {action}")
