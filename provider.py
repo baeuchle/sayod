@@ -124,7 +124,10 @@ class ManualProvider(Provider):
         return self.commandline_()
 
     def dialog_(self):
-        app = QApplication(['ManualProvider'])
+        if not QApplication.instance():
+            app = QApplication(['ManualProvider'])
+        else:
+            app = QApplication.instance()
         QTimer.singleShot(self.timeout * 1000, app.closeAllWindows)
         button = QMessageBox.question(None, self.title, self.message)
         if button == QMessageBox.Yes:
