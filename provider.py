@@ -181,37 +181,39 @@ class SshFsProvider(MountProvider):
             command.append(mo)
         return subprocess.run(command, text=True, capture_output=True, check=False)
 
+class AdbProvider(Provider):
+    def __init__(self, name, config):
+        super().__init__(name, config)
+        self.device = config.get('device', None)
+
+    def acquire(self):
+        command = ['adb', 'connect', self.device]
+        return subprocess.run(command, text=True, capture_output=True, check=False)
+
     def release(self):
         if not super().release():
             return self.failure()
-        command = ['fusermount', '-u', self.local_path]
+        command = ['adb', 'disconnect', self.device]
         return subprocess.run(command, text=True, capture_output=True, check=False)
 
-class AdbFsProvider(Provider):
+class AdbFsProvider(MountProvider):
     def __init__(self, name, config):
         super().__init__(name, config)
         self.mountopts = config.get('mountopts', '').split()
+        self.device = config.get('device', None)
 
     def acquire(self):
         if not super().acquire():
             return self.failure()
-        host = self.host + ':'
-        if self.remote_path:
-            host = f'{host}{self.remote_path}'
-        if self.user:
-            host = f'{self.user}@{host}'
         command = ['adbfs']
         for mo in self.mountopts:
             command.append('-o')
             command.append(mo)
         command.append(self.local_path)
-        return subprocess.run(command, text=True, capture_output=True, check=False)
-
-    def release(self):
-        if not super().release():
-            return self.failure()
-        command = ['fusermount', '-u', self.local_path]
-        return subprocess.run(command, text=True, capture_output=True, check=False)
+        env_args = os.environ
+        if self.device:
+            env_args['ANDROID_SERIAL'] = self.device
+        return subprocess.run(command, text=True, capture_output=True, check=False, env=env_args)
 
 def ProviderFactory(name, config):
     action = config.find(name, 'action', '')
@@ -219,6 +221,8 @@ def ProviderFactory(name, config):
         return ManualProvider(name, config.find_section(name))
     if action == 'sshfs':
         return SshFsProvider(name, config.find_section(name))
+    if action == 'adb':
+        return AdbProvider(name, config.find_section(name))
     if action == 'adbfs':
         return AdbFsProvider(name, config.find_section(name))
     if action == 'mkdir':
