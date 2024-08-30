@@ -44,7 +44,7 @@ def remote(config, notify, subject, command):
         err = proc.stderr.read()
         if returncode != 0:
             notify.notify_local(f"Kann entferntes Log nicht lesen:\n{oneline(err)}",
-                head='Backup-Fehler {config.find("info", "friendly_name", "")}')
+                head='Backup-Fehler {}')
             return 0
         for line in proc.stdout.readlines():
             results.append(line.split()[0])

@@ -47,14 +47,14 @@ class Notify:
             'pipe': self.config.find('notify', 'pipe', False),
             'remote': self.config.find('notify', 'remotekey',
                 self.config.find('info', 'stripped_name',
-                    self.config.friendly))
+                    self.friendly))
         }
         if self.ssh['pipe'] in ('no', 'nein', 'false'):
             self.ssh['pipe'] = False
 
     def notify_local(self, long_msg, **kwargs):
         msg = textwrap.fill(long_msg, width=72)[0:131071]
-        head = kwargs.get('head', "NOTIFICATION").format(self.config.friendly)
+        head = kwargs.get('head', "NOTIFICATION").format(self.friendly)
         if self.show:
             run(['notify-send',
                  '-u', kwargs.get('urgency', 'low'),
