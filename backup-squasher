@@ -1,0 +1,122 @@
+#!/usr/bin/python3
+
+import argparse
+from config import Config
+from datetime import date, timedelta
+import log
+from gitversion import Git, STDOUT
+
+parser = argparse.ArgumentParser(description='''
+    Squashes backups inside a git repository so that different backup ages remain. The idea is to
+    regularly make a backup, commit everything to git. (This needs to be done independent of this
+    program.) Then, run this program with a given --scope and it will squash all commits in the
+    previous $scope, leaving one commit only. Depending on --keep_previous, the new commit will
+    replace the commit just previous to the last $scope, or it will simply follow that one. Commits
+    newer than the previous scope (e.g., commits from this month for $scope == mongh) will be as
+    untouched as possible (i.e., their dates are kept, their hashes not).
+''', epilog='All of this only makes sense if you also run git gc regularly.')
+parser.add_argument('--scope', choices='monthly weekly daily'.split(), required=True)
+parser.add_argument('--keep-previous', action=argparse.BooleanOptionalAction, default=None, help='''
+    Squash the first commit in the range into its previous commit. This should only be activated at
+    the longest interval that is used for the given repository. If not given, the default value
+    depends on --scope: for monthly: True, for weekly and daily: False.
+''')
+parser.add_argument('--directory', default='.', help='''
+    Path to the git repository that will be handled. If --config is given, its target::path will
+    take precedence.
+''')
+log.add_options(parser)
+Config.add_options(parser)
+args = parser.parse_args()
+
+scope = args.scope
+squash_into_last = args.keep_previous
+llog = log.get_logger('layered', args)
+if args.configuration_file != "":
+    config = Config.get_config(args)
+    git = Git(config.find('target', 'path', args.directory), stderr=STDOUT)
+else:
+    git = Git(args.directory, stderr=STDOUT)
+
+squash_into_last_defaults = {'monthly': True, 'weekly': False, 'daily': False}
+
+today = date.today()
+time_fmt = '%Y-%m-%d'
+if scope == 'monthly':
+    end_date = today.replace(day=1)
+    start_date = (end_date - timedelta(days=1)).replace(day=1)
+elif scope == 'weekly':
+    end_date = today - timedelta(days=today.weekday()) # this is last monday midnight
+    start_date = end_date - timedelta(days=7)
+elif scope == 'daily':
+    end_date = today
+    start_date = today - timedelta(days=1)
+    time_fmt = '%Y-%m-%dT%H:%M:%S'
+else:
+    llog.error("Unkown scope %s", scope)
+    raise SystemExit(1)
+if squash_into_last is None:
+    squash_into_last = config.find('squash', scope, squash_into_last_defaults[scope])
+
+start_string = start_date.strftime(time_fmt)
+end_string = end_date.strftime(time_fmt)
+
+output = git.commandlines('rev-list', f'--before={end_string}', f'--after={start_string}', 'HEAD')
+squashables = set([x.strip() for x in output])
+
+if not squashables:
+    llog.info("No commits found between %s and %s.", start_string, end_string)
+    raise SystemExit(0)
+else:
+    llog.info("Found %d commits between %s and %s", len(squashables), start_string, end_string)
+first_commit = output[-1].strip()
+initial_commit =  git.command('rev-list', '--max-parents=0', 'HEAD').strip()
+
+if squash_into_last and first_commit == initial_commit:
+    llog.info("Repository is not old enough for this backup scope.")
+    raise SystemExit(0)
+
+# rebase onto one commit before first_commit, so that all the commits can be squashed into that one.
+base = "^" if squash_into_last else ""
+prepare_output = git.command('-c', f'core.editor=echo break | tee', 'rebase', '-i', first_commit + base)
+if git.returncode != 0:
+    llog.error("git rebase failed: %s", prepare_output)
+    raise SystemExit(0)
+
+# this has created an empty file in .git/rebase-merge/git-rebase-todo (had 'break', but that is
+# already done) and a non-empty file in .git/rebase-merge/git-rebase-todo.backup
+rebase_plan = []
+new_todo_file =  git.cwd / '.git' / 'rebase-merge' / 'git-rebase-todo'
+orig_todo_file = new_todo_file.with_suffix('.backup')
+with orig_todo_file.open() as rebase_plan_file:
+    tag_change_now = False
+    for line in rebase_plan_file:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped[0] == '#':
+            continue
+        words = stripped.split()
+        if words[1] in squashables:
+            words[0] = 'fixup'
+            squashables.remove(words[1])
+            rebase_plan.append(' '.join(words))
+            # this is only necessary for the last fixup'ed commit, but it is fast and doesn't really
+            # hurt to do multiple times.
+            rebase_plan.append(f'exec GIT_COMMITTER_DATE="{end_date:%Y-%m-%d:%H:%M:%S}" ' +
+                               f'git commit --amend --no-edit --date="{end_string}" ' +
+                               f'-m "{scope} backup from {end_string}"')
+        else:
+            rebase_plan.append(stripped)
+            rebase_plan.append('exec GIT_COMMITTER_DATE="$(git log -1 --format=%ad)" ' +
+                               'git commit --amend --no-edit ' +
+                               '--date="$(git log -1 --format=%ad)"')
+with new_todo_file.open('w') as new_plan:
+    new_plan.write('\n'.join(rebase_plan))
+
+rb_continue_output = git.command('rebase', '--continue')
+if git.returncode != 0:
+    llog.error("git rebase --continue failed: %s", rb_continue_output)
+    abort_output = git.command('rebase', '--abort')
+    if git.returncode != 0:
+        llog.error("Cannot even abort rebase: %s", abort_output)
