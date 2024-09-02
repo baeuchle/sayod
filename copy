@@ -68,9 +68,6 @@ if not target:
     notify.fatal('Kann Zielpfad nicht bestimmen (sollte in target::path stehen')
     sys.exit(127)
 exclude_file = config.find('source', 'exclude_file', None)
-if not exclude_file:
-    notify.fatal("Kann nicht bestimmen, welche Dateien vom Backup "
-            + "ausgeschlossen werden sollen (sollte in source::exclude_file stehen)")
 clog.info("Sources %s", '; '.join(sources))
 clog.info("Target %s", target)
 clog.info("Exclude file %s", exclude_file)
@@ -78,6 +75,10 @@ clog.info("Exclude file %s", exclude_file)
 rsync_oneletters = '-via'
 if config.find('rsync', 'no_cross', '') == '-x':
     rsync_oneletters = '-viax'
+
+rsync_options = config.find('rsync', 'options', '').split()
+if exclude_file:
+    rsync_options.append(f'--exclude-from={exclude_file}')
 
 providers = config.find('rsync', 'providers', '').split()
 with ExitStack() as es:
