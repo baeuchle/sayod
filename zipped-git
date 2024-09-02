@@ -1,0 +1,47 @@
+#!/usr/bin/python3
+
+import argparse
+import log
+from pathlib import Path
+import regex as re
+from datetime import datetime
+from gitversion import Git
+from subprocess import run
+
+parser = argparse.ArgumentParser()
+log.add_options(parser)
+Config.add_options(parser)
+args = parser.parse_args()
+
+gitdir = Path(config.find('repository', 'path', '.'))
+git = Git(gitdir)
+
+directory = Path(config.find('zipstore', 'path', gitdir.parent))
+finder = re.compile(config.find('zipstore', 'date_expression', None))
+files = list(directory.glob(config.find('zipstore', 'pattern', "backup_*.zip")))
+files.sort()
+for bf in files:
+    print(bf.stem)
+    tokens = finder.findall(bf.stem)
+    if not tokens:
+        print(f"file doesn't match {finder}")
+        continue
+    if config.find('zipstore', 'use_timestamp', False):
+        zipdate = datetime.fromtimestamp(int(tokens[0]))
+    else:
+        zipdata = datetime.now()
+    print(zipdate)
+    for gitfile in git.commandlines('ls-files'):
+        gitfile = gitfile.strip()
+        git.command('rm', gitfile)
+        print(".", end="")
+    print(" now unzipping")
+    zipargs = ["7z", "-y", "-o" + str(gitdir)]
+    password = config.find('zipstore', 'password', None)
+    if password:
+        zipargs.append('-p'+password)
+    zipargs.append('x')
+    zipargs.append(str(bf))
+    zipresult = run(zipargs)
+    git.command('add', '.')
+    git.command('commit', '-m', f"BACKUP {zipdate:%Y-%m-%d}\n\nfrom file {bf.stem}")
