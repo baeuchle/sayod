@@ -1,0 +1,23 @@
+#!/usr/bin/python3
+
+import argparse
+from config import Config
+from datetime import datetime
+from gitversion import Git
+import log
+from notify import Notify, oneline
+
+parser = argparse.ArgumentParser(
+        description="""Replaces all files inside a git repository with the current working
+        directory's content and creates a new commit""")
+Config.add_options(parser)
+log.add_options(parser)
+Notify.add_options(parser)
+args = parser.parse_args()
+
+notify = Notify(config, show=not args.notification_dontshow)
+git = Git(config.find('target', 'path', args.directory))
+
+git.command('add', '.')
+git.command('commit', '-m', f'BACKUP {datetime.now()}')
+notify.success("New commit created")
