@@ -47,7 +47,7 @@ log.info("Creating new tag %s", tagname)
 git.command('tag', tagname)
 for orig in config.find('git', 'origins', 'origin').split():
     log.info('Pushing to origin %s', orig)
-    git.command('push', '-q', orig, 'master')
+    git.command('push', '-q', orig, config.find('git', 'branch', 'main'))
 
 notify.success("Current commit is", git.hash())
 sys.exit(0)
