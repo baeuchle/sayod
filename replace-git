@@ -10,11 +10,13 @@ from notify import Notify, oneline
 parser = argparse.ArgumentParser(
         description="""Replaces all files inside a git repository with the current working
         directory's content and creates a new commit""")
+parser.add_argument('--directory', required=False)
 Config.add_options(parser)
 log.add_options(parser)
 Notify.add_options(parser)
 args = parser.parse_args()
 
+config = Config.get_config(args)
 notify = Notify(config, show=not args.notification_dontshow)
 git = Git(config.find('target', 'path', args.directory))
 
