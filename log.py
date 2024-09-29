@@ -7,13 +7,6 @@ def add_options(ap, **kwargs):
     default_level = kwargs.get('default_loglevel', 'WARNING')
     group = ap.add_argument_group('Logging')
     meg = group.add_mutually_exclusive_group(required=False)
-    meg.add_argument('--verbosity', '-v',
-                        action='store_true',
-                        dest='log_verbosity',
-                        default=False,
-                        help='Sets loglevel to one step more than {}'.format(default_level),
-                        required=False
-                       )
     meg.add_argument('--log-level',
                         action='store',
                         dest='log_level',
@@ -25,13 +18,8 @@ def add_options(ap, **kwargs):
 
 def get_logger(name, level=None):
     if level is not None:
-        if isinstance(level, argparse.Namespace):
-            numeric_level = getattr(logging, level.log_level)
-            if level.log_verbosity:
-                numeric_level -= 10
-            return get_logger(name, numeric_level)
-        logging.basicConfig(
-            level=level,
-            style='{'
-        )
+        numeric_level = getattr(logging, level.log_level)
+        if level.log_verbosity:
+            numeric_level -= 10
+        return get_logger(name, numeric_level)
     return logging.getLogger(name)
