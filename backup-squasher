@@ -31,7 +31,7 @@ args = parser.parse_args()
 
 scope = args.scope
 squash_into_last = args.keep_previous
-llog = log.get_logger('layered', args)
+llog = log.get_logger('squasher', args)
 if args.configuration_file != "":
     config = Config.get_config(args)
     git = Git(config.find('target', 'path', args.directory), stderr=STDOUT)
