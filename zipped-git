@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import argparse
+from config import Config
 import log
 from pathlib import Path
 import regex as re
@@ -13,6 +14,7 @@ log.add_options(parser)
 Config.add_options(parser)
 args = parser.parse_args()
 
+config = Config.get_config(args)
 gitdir = Path(config.find('repository', 'path', '.'))
 git = Git(gitdir)
 
@@ -27,10 +29,10 @@ for bf in files:
         print(f"file doesn't match {finder}")
         continue
     if config.find('zipstore', 'use_timestamp', False):
-        zipdate = datetime.fromtimestamp(int(tokens[0]))
+        zipdata = datetime.fromtimestamp(int(tokens[0]))
     else:
         zipdata = datetime.now()
-    print(zipdate)
+    print(zipdata)
     for gitfile in git.commandlines('ls-files'):
         gitfile = gitfile.strip()
         git.command('rm', gitfile)
@@ -44,4 +46,4 @@ for bf in files:
     zipargs.append(str(bf))
     zipresult = run(zipargs)
     git.command('add', '.')
-    git.command('commit', '-m', f"BACKUP {zipdate:%Y-%m-%d}\n\nfrom file {bf.stem}")
+    git.command('commit', '-m', f"BACKUP {zipdata:%Y-%m-%d}\n\nfrom file {bf.stem}")
