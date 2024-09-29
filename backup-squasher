@@ -55,6 +55,7 @@ elif scope == 'daily':
 else:
     llog.error("Unkown scope %s", scope)
     raise SystemExit(1)
+llog.debug('Scope %s from %s to %s', scope, end_date, start_date)
 if squash_into_last is None:
     squash_into_last = config.find('squash', scope, squash_into_last_defaults[scope])
 
