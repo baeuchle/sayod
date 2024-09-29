@@ -95,6 +95,9 @@ with orig_todo_file.open() as rebase_plan_file:
         stripped = line.strip()
         if not stripped:
             continue
+        if stripped == 'noop':
+            rebase_plan.append(stripped)
+            continue
         if stripped[0] == '#':
             continue
         words = stripped.split()
