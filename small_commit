@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     sclog = log.get_logger('small_commit', args)
     config = Config.get_config(args)
-    notify = Notify(config, show=not args.notification_dontshow)
+    notify = Notify(config, show=args.notification_show)
     git = Git(config.find('git', 'directory', Path.cwd()))
 
     make_small_commit(config, git, notify, args.add)

@@ -17,7 +17,7 @@ Notify.add_options(parser)
 args = parser.parse_args()
 
 config = Config.get_config(args)
-notify = Notify(config, show=not args.notification_dontshow)
+notify = Notify(config, show=args.notification_show)
 git = Git(config.find('target', 'path', args.directory))
 
 git.command('add', '.')

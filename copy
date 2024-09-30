@@ -28,7 +28,7 @@ args = parser.parse_args()
 
 clog = log.get_logger('copy', args)
 config = Config.get_config(args)
-notify = Notify(config, show=not args.notification_dontshow)
+notify = Notify(config, show=args.notification_show)
 
 deadtime = int(config.find('rsync', 'deadtime', 0))
 if deadtime > 0:

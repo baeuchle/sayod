@@ -70,7 +70,7 @@ args = parser.parse_args()
 
 dblog = log.get_logger('database', args)
 config = Config.get_config(args)
-notify = Notify(config, show=not args.notification_dontshow)
+notify = Notify(config, show=args.notification_show)
 
 dbtype = config.find('database', 'type', 'sqlite3')
 dumpdir = config.find('database', 'directory', Path.cwd())

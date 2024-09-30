@@ -20,9 +20,9 @@ class Notify:
     @classmethod
     def add_options(cls, ap):
         group = ap.add_argument_group('Notification')
-        group.add_argument('--no-notify', '-N',
-                            action='store_true',
-                            dest='notification_dontshow',
+        group.add_argument('--notify',
+                            action=argparse.BooleanOptionalAction,
+                            dest='notification_show',
                             help="Don't show notification on screen",
                             required=False)
 
@@ -157,12 +157,12 @@ if __name__ == '__main__':
     Notify.add_options(parser)
     Config.add_options(parser)
     log.add_options(parser)
-    parser.add_argument('--level', required=False,
+    parser.add_argument('--level', required=True,
             choices='abort deadtime fail fatal start success'.split())
     parser.add_argument('notification_text', nargs='+')
     cmdopts = parser.parse_args()
 
     nlog = log.get_logger('notify', cmdopts)
-    config_ = Config(cmdopts.config)
-    notify = Notify(config_, show=not cmdopts.notification_dontshow)
+    config_ = Config.get_config(cmdopts)
+    notify = Notify(config_, show=cmdopts.notification_show)
     getattr(notify, cmdopts.level)(*cmdopts.notification_text)
