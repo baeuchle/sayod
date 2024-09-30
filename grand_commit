@@ -45,7 +45,7 @@ if tagname + "\n" in git.commandlines('tag'):
 
 log.info("Creating new tag %s", tagname)
 git.command('tag', tagname)
-for orig in config.find('git', 'origins', 'origin').split():
+for orig in config.find('git', 'origins', '').split():
     log.info('Pushing to origin %s', orig)
     git.command('push', '-q', orig, config.find('git', 'branch', 'main'))
 
