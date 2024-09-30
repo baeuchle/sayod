@@ -19,8 +19,8 @@ Config.add_options(parser)
 log.add_options(parser)
 args = parser.parse_args()
 
-log = log.get_logger('analyse', args)
-config = Config.get_config(parser)
+alog = log.get_logger('analyse', args)
+config = Config.get_config(args)
 log_obj = TaggedLog(config.find('status', 'file', ''), 'a+')
 
 warn_missing_success = config.find("status", "warn_missing", 9)
@@ -39,6 +39,7 @@ if last_success is None:
         "Es wurde noch nie ein erfolgreiches Backup gemacht",
         "NEVER"
     )
+    alog.info(last_success.content)
 elif last_success.date < warn_missing_since:
     msg = config.find("messages", "warn_missing",
         "Last successful backup was before {last_success.date:%Y.%m.%d %H:%M}."
@@ -62,6 +63,7 @@ elif last_success.date < warn_missing_since:
         )
     last_success.content = msg.strip().replace('\n', "\\n")
     error_log['WARN'].append(last_success)
+    alog.warning(last_success.content)
 
 last_analysis = log_obj.find(subjects=["ANALYSE", "MAIL"], action='last')
 if last_analysis is None:

@@ -43,7 +43,10 @@ def get_logger(name, level=None):
     sh = add_handler_if_new(root_log, logging.StreamHandler)
     jh = add_handler_if_new(root_log, JournalHandler, SYSLOG_IDENTIFIER='backup')
     if level is not None:
-        numeric_level = getattr(logging, level.log_level)
+        if isinstance(level, int):
+            numeric_level = level
+        else:
+            numeric_level = getattr(logging, level.log_level)
         sh.setLevel(numeric_level)
     jf = logging.Formatter('%(name)s: %(message)s')
     jh.setFormatter(jf)

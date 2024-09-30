@@ -15,11 +15,11 @@ if line.startswith("content-type: "):
     content_type = line[len("content-type: "):]
     line = sys.stdin.readline().strip()
 
-log = log.get_logger('receiver', 30)
+rlog = log.get_logger('receiver', 30)
 config = Config.get_config(line)
 status_file = config.find('status', 'file', None)
 if status_file is None:
-    log.warning("Status file cannot be determined")
+    rlog.warning("Status file cannot be determined")
     sys.exit(1)
 log_obj = TaggedLog(status_file, 'a+')
 
