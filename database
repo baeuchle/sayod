@@ -17,6 +17,8 @@ from gitversion import Git
 dblog = log.get_logger('database')
 
 def oneline(text):
+    if not isinstance(text, str):
+        text = str(text)
     return text.replace("\n", " ")
 
 def dumpall(source, directory, notifier, environment, tblcmd, dumpcmd): # pylint: disable=too-many-arguments
