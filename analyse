@@ -51,7 +51,7 @@ elif last_success.date < warn_missing_since:
     if last_start is not None:
         msg += "\n\n"
         msg += config.find("messages", "report_last_started",
-            "Last backup was at {last_start.date:%Ym.%m.%d %H:%M}"
+            "Last backup was at {last_start.date:%Y.%m.%d %H:%M}"
         ).format(
             last_start=last_start,
             diff=(now - last_start.date)
