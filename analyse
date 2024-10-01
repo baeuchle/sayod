@@ -6,7 +6,6 @@ import argparse
 import datetime
 from email.message import EmailMessage
 from smtplib import SMTP
-import sys
 from gnupg import GPG
 
 from config import Config
@@ -89,7 +88,7 @@ for cat in error_log:
 
 if totcount == 0 or totcount == len(error_log['NOTIFY']):
     # nothing to report: yee-hah!
-    sys.exit(0)
+    raise SystemExit(0)
 
 mail_message = config.find('messages', 'opening', "Hallo")
 mail_message += "\n"
@@ -148,8 +147,8 @@ if mailprg == 'mail':
             s.send_message(msg)
         except BaseException as be: # pylint: disable=broad-except
             log_obj.append(TaggedEntry(str(be), "NOMAIL"))
-            sys.exit(2)
+            raise SystemExit(2)
     log_obj.append(TaggedEntry(msg['To'], "MAIL"))
-    sys.exit(0)
+    raise SystemExit(0)
 
 print(mail_message)

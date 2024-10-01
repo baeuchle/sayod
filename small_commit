@@ -5,7 +5,6 @@
 import argparse
 from datetime import datetime
 from pathlib import Path
-import sys
 from gitversion import Git
 from config import Config
 from notify import Notify
@@ -49,4 +48,4 @@ if __name__ == "__main__":
     git = Git(config.find('git', 'directory', Path.cwd()))
 
     make_small_commit(config, git, notify, args.add)
-    sys.exit(0)
+    raise SystemExit(0)

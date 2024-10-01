@@ -7,7 +7,6 @@ import datetime
 from contextlib import ExitStack
 from pathlib import Path
 import subprocess
-import sys
 
 from config import Config
 import log
@@ -37,7 +36,7 @@ if deadtime > 0:
     if tage <= deadtime:
         if not args.force:
             notify.deadtime(f"Letztes erfolgreiches Backup war vor weniger als {deadtime} Tagen")
-            sys.exit(0)
+            raise SystemExit(0)
         clog.info("Deadtime ignored because --force was specified")
     else:
         clog.info("Deadtime is over")
@@ -53,7 +52,7 @@ if not source:
     if not source_list:
         notify.fatal('Kann Quellpfad nicht bestimmen (sollte in source::path stehen)')
         clog.critical('source::path or source::list should be present')
-        sys.exit(127)
+        raise SystemExit(127)
     try:
         sls = config.find_section(source_list)
     except KeyError as ke:
@@ -66,7 +65,7 @@ if not source:
 target = config.find('target', 'path', None)
 if not target:
     notify.fatal('Kann Zielpfad nicht bestimmen (sollte in target::path stehen')
-    sys.exit(127)
+    raise SystemExit(127)
 exclude_file = config.find('source', 'exclude_file', None)
 clog.info("Sources %s", '; '.join(sources))
 clog.info("Target %s", target)

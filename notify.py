@@ -6,7 +6,6 @@ sensible stuff"""
 import argparse
 import os
 from subprocess import run, Popen, PIPE, DEVNULL
-import sys
 import textwrap
 
 from config import Config
@@ -37,7 +36,7 @@ class Notify:
             wns = run(['which', 'notify-send'], check=False, stdout=DEVNULL, stderr=DEVNULL)
             if wns.returncode != 0:
                 nlog.critical('Kann notify-send nicht finden, bitte installieren')
-                sys.exit(127)
+                raise SystemExit(127)
             if not 'XDG_RUNTIME_DIR' in self.env:
                 self.env['XDG_RUNTIME_DIR'] = '/run/user/{}'.format(os.getuid())
         self.ssh = {

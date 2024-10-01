@@ -23,7 +23,7 @@ if __name__ == '__main__':
     status_file = config.find('status', 'file', None)
     if status_file is None:
         lrlog.warning("Status file cannot be determined")
-        sys.exit(1)
+        raise SystemExit(1)
     log_obj = TaggedLog(status_file, 'r')
 
     subject_list = []
@@ -38,4 +38,4 @@ if __name__ == '__main__':
 
     entries = log_obj.find(subjects=subject_list, action=action)
     print(entries)
-    sys.exit(0)
+    raise SystemExit(0)

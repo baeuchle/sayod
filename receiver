@@ -20,10 +20,10 @@ config = Config.get_config(line)
 status_file = config.find('status', 'file', None)
 if status_file is None:
     rlog.warning("Status file cannot be determined")
-    sys.exit(1)
+    raise SystemExit(1)
 log_obj = TaggedLog(status_file, 'a+')
 
 entry = FromStream(sys.stdin, content_type)
 
 log_obj.append(entry)
-sys.exit(0)
+raise SystemExit(0)
