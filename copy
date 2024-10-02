@@ -3,8 +3,8 @@
 """Copy stuff"""
 
 import argparse
-from contextlib import ExitStack
 
+from context import Context
 from config import Config
 import deadtime
 import log
@@ -62,13 +62,7 @@ rsync.fill_options()
 rsync.sudo()
 
 providers = config.find('rsync', 'providers', '').split()
-with ExitStack() as es:
-    for prv in providers:
-        try:
-            es.enter_context(ProviderFactory(prv, config))
-        except ProvideError as pe:
-            clog.info("ProvideError: %s", pe)
-            raise SystemExit(1) from pe
+with Context(config, providers):
     rsync.run(sources=sources, target=target)
 
 clog.info("RSYNC done, exit code %d, %d log lines, %d error lines",
