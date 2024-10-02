@@ -6,9 +6,11 @@ import log
 rlog = log.get_logger('rsync')
 
 class RSync:
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config.find_section('rsync')
         self.exe_args = ['rsync']
         self.options = []
+        self.fill_options()
         self.popen_args = dict(stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         self.stderr = ""
         self.stdout = ""
@@ -34,20 +36,20 @@ class RSync:
         self.returncode = proc.returncode
         self.short_out = f"{self.out_len} output lines"
 
-    def fill_options(self, **kwargs):
-        self.options.extend(kwargs.pop('options', []))
+    def fill_options(self):
+        self.options.extend(self.config.get('options', '').split())
         self.options.append('--partial')
         self.options.append('-v')
         self.options.append('-i')
         self.options.append('-a')
-        if kwargs.pop('no_cross', '') == '-x':
+        if self.config.get('no_cross', '') == '-x':
             self.options.append('-x')
-        ef = kwargs.pop('exclude_file', False)
+        ef = self.config.get('exclude_file', False)
         if ef:
             self.options.append(f'--exclude-from={ef}')
 
-    def sudo(self, do_sudo):
-        if not do_sudo:
+    def sudo(self):
+        if not self.config.get('privilege', False):
             return
         rlog.warning('Using privileged rsync is deprecated, you should rather run this as a privileged user!')
         self.exe_args.insert(0, 'sudo')
@@ -62,8 +64,8 @@ class RSync:
             rlog.debug(x)
         rlog.debug("######################")
 
-    def save_output(self, config):
-        outfile = datetime.datetime.now().strftime(config.find('rsync', 'outfile', ''))
+    def save_output(self):
+        outfile = datetime.datetime.now().strftime(self.config('outfile', ''))
         if outfile:
             with Path(outfile).open("w+") as out:
                 out.write('\n'.join(self.stdout))
