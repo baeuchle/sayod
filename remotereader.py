@@ -58,5 +58,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     lrlog = log.get_logger('logreader', args)
     config_ = Config(args.configuration_file)
-    notify_ = Notify(config_, show=not args.no_notify)
+    notify_ = Notify(config_, show=args.notification_show)
     print(remote(config_, notify_, args.subject, args.command))
