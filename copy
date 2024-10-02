@@ -3,33 +3,17 @@
 """Copy stuff"""
 
 import argparse
-import datetime
 from contextlib import ExitStack
 from pathlib import Path
 
 from config import Config
+import deadtime
 import log
 from notify import Notify, oneline
 from rsync import RSync
 from provider import ProviderFactory, ProvideError
-import remotereader
 
 clog = log.get_logger('copy')
-
-def handle_deadtime(force, config, notify):
-    deadtime = int(config.find('rsync', 'deadtime', 0))
-    if deadtime <= 0:
-        clog.debug("No deadtime given, going ahead")
-        return
-    last_success = remotereader.remote(config, notify, 'SUCCESS', remotereader.LAST)
-    tage = (datetime.datetime.today() - last_success).days
-    if tage > deadtime:
-        clog.info("Deadtime is over")
-        return
-    if not force:
-        notify.deadtime(f"Letztes erfolgreiches Backup war vor weniger als {deadtime} Tagen")
-        raise SystemExit(0)
-    clog.info("Deadtime ignored because --force was specified")
 
 def find_sources(config, notify):
     source = config.find('source', 'path', None)
@@ -61,7 +45,8 @@ clog = log.get_logger('copy', args)
 config = Config.get_config(args)
 notify = Notify(config, show=args.notification_show)
 
-handle_deadtime(args.force, config, notify)
+if not deadtime.test_deadtime(args.force, config, notify):
+    raise SystemExit(0)
 notify.start("Starte Backup")
 sources = find_sources(config, notify)
 target = config.find('target', 'path', None)
