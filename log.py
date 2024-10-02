@@ -20,14 +20,6 @@ def add_options(ap, **kwargs):
                         help='Sets the logging level',
                         required=False
                        )
-    meg.add_argument('--log-config',
-                        action='store',
-                        dest='log_config',
-                        default=None,
-                        type=Path,
-                        help='Read logging configuration from this file',
-                        required=False
-                       )
 
 def add_handler_if_new(logger, hClass, *args, **kwargs):
     for h in logger.handlers:
