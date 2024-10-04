@@ -85,8 +85,7 @@ class Config:
 
     def find(self, section, key, default):
         if self.configuration.has_option(section, key):
-            clog.debug("Found option %s::%s = %s",
-                section, key, self.configuration[section][key])
+            # logging what has been found may leak passwords.
             return self.configuration[section][key]
         clog.debug("Option %s::%s not found", section, key)
         return default
