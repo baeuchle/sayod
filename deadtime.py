@@ -5,6 +5,15 @@ import remotereader
 
 dlog = log.get_logger('deadtime')
 
+def add_options(parser, **kwargs):
+    optname = kwargs.get('optname', 'force')
+    parser.add_argument('--' + optname, '-' + optname[0],
+                        default=False,
+                        action='store_true',
+                        required=False,
+                        help="Ignore deadtime and force action",
+                        dest="deadtime_force")
+
 def test_deadtime(force, config, notify):
     deadtime = int(config.find('rsync', 'deadtime', 0))
     if deadtime <= 0:
