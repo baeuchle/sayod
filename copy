@@ -52,21 +52,15 @@ target = config.find('target', 'path', None)
 if not target:
     notify.fatal('Kann Zielpfad nicht bestimmen (sollte in target::path stehen')
     raise SystemExit(127)
+
 exclude_file = config.find('source', 'exclude_file', None)
+if exclude_file:
+    clog.warning("Exclude file should be defined in [rsync]")
+    config.find_section('rsync')['exclude_file'] = exclude_file
 clog.info("Sources %s", '; '.join(sources))
 clog.info("Target %s", target)
-clog.info("Exclude file %s", exclude_file)
 
 rsync = RSync(config)
-rsync.fill_options()
-rsync.sudo()
-
-providers = config.find('rsync', 'providers', '').split()
-with Context(config, providers):
+with Context(config, config.find('rsync', 'providers', '').split()) as pc:
     rsync.run(sources=sources, target=target)
-
-clog.info("RSYNC done, exit code %d, %d log lines, %d error lines",
-          rsync.returncode, rsync.out_len, rsync.err_len)
-rsync.save_output()
-rsync.notify_result(notify)
-rsync.report_output()
+rsync.wrapup(notify)

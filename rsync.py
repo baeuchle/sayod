@@ -15,6 +15,7 @@ class RSync:
         self.stderr = ""
         self.stdout = ""
         self.returncode = None
+        self.sudo()
 
     @property
     def out_len(self):
@@ -65,13 +66,15 @@ class RSync:
         rlog.debug("######################")
 
     def save_output(self):
-        outfile = datetime.datetime.now().strftime(self.config('outfile', ''))
+        outfile = datetime.datetime.now().strftime(self.config.get('outfile', ''))
         if outfile:
             with Path(outfile).open("w+") as out:
                 out.write('\n'.join(self.stdout))
             self.short_out = f"output in {outfile}"
 
     def notify_result(self, notify):
+        rlog.info("RSYNC done, exit code %d, %d log lines, %d error lines",
+            self.returncode, self.out_len, self.err_len)
         error = ' '.join(self.stderr)
         code = '{self.returncode}\n{error}'
         if self.returncode == 0:
@@ -92,3 +95,7 @@ class RSync:
         else:
             notify.fail(f"Unknown rsync error {code}")
 
+    def wrapup(self, notify):
+        self.save_output()
+        self.notify_result(notify)
+        self.report_output()
