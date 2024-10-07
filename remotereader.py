@@ -3,31 +3,30 @@
 """Reads request for log find task from STDIN and prints the lines that
 were found"""
 
-import argparse
 import datetime
+import logging
 from subprocess import Popen, PIPE
 
-from config import Config
-import log
-from notify import oneline, Notify
+from notify import Notify, oneline
 
-lrlog = log.get_logger('logreader')
+lrlog = logging.getLogger('backup.remotereader')
 
 LAST = "last"
 
-def remote(config, notify, subject, command):
+def remote(subject, command):
     results = []
-    ssh = notify.ssh
+    ssh = Notify.get().ssh
+    lrlog.info("Connecting to ssh -> logreader")
     with Popen(['ssh',
-        '-l', ssh['user'],
-              ssh['host'],
-        '-p', ssh['port'],
-        'logreader'
-        ],
-        text=True,
-        stdin=PIPE,
-        stdout=PIPE,
-        stderr=PIPE) as proc:
+                '-l', ssh['user'],
+                      ssh['host'],
+                '-p', ssh['port'],
+                'logreader'
+            ],
+            text=True,
+            stdin=PIPE,
+            stdout=PIPE,
+            stderr=PIPE) as proc:
         proc.stdin.write('content-type: text/x-plain-ask\n')
         proc.stdin.write(ssh['remote'] + "\n")
         proc.stdin.write(subject + "\n\n")
@@ -36,7 +35,7 @@ def remote(config, notify, subject, command):
         returncode = proc.wait()
         err = proc.stderr.read()
         if returncode != 0:
-            notify.notify_local(f"Kann entferntes Log nicht lesen:\n{oneline(err)}",
+            Notify.get().notify_local(f"Kann entferntes Log nicht lesen:\n{oneline(err)}",
                 head='Backup-Fehler {}')
             return 0
         for line in proc.stdout.readlines():
@@ -48,15 +47,13 @@ def remote(config, notify, subject, command):
         pass
     return results
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="""Show and send a notification""")
-    Config.add_options(parser)
-    log.add_options(parser)
-    parser.add_argument('--no-notify', '-N', required=False, default=False, action='store_true')
-    parser.add_argument('--subject', required=True)
-    parser.add_argument('--command', required=True)
-    args = parser.parse_args()
-    lrlog = log.get_logger('logreader', args)
-    config_ = Config(args.configuration_file)
-    notify_ = Notify(config_, show=args.notification_show)
-    print(remote(config_, notify_, args.subject, args.command))
+class RemoteReader:
+    @classmethod
+    def add_subparser(cls, sp):
+        ap = sp.add_parser('remotereader', help='read data from remote log')
+        ap.add_argument('--subject', required=True)
+        ap.add_argument('--command', required=True)
+
+    @classmethod
+    def standalone(cls, args):
+        return remote(args.subject, args.command)
