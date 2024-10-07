@@ -4,32 +4,22 @@
 sensible stuff"""
 
 import argparse
+import logging
 import os
 from subprocess import run, Popen, PIPE, DEVNULL
 import textwrap
 
 from config import Config
-import log
-nlog = log.get_logger('notify')
+nlog = logging.getLogger('backup.notify')
 
 def oneline(text):
     return text.strip().replace('\n', ' ')
 
-class Notify:
-    @classmethod
-    def add_options(cls, ap):
-        group = ap.add_argument_group('Notification')
-        group.add_argument('--notify',
-                            action=argparse.BooleanOptionalAction,
-                            dest='notification_show',
-                            help="Don't show notification on screen",
-                            required=False)
-
-    def __init__(self, config, **kwargs):
+class _Notify:
+    def __init__(self, **kwargs):
         self.show = kwargs.get('show', False)
-        self.config = config
-        self.friendly = self.config.find('info', 'friendly_name',
-                             self.config.find('info', 'stripped_name',
+        self.friendly = Config.get().find('info', 'friendly_name',
+                             Config.get().find('info', 'stripped_name',
                                 'UNKNOWN'))
         self.env = os.environ
         if self.show:
@@ -38,14 +28,14 @@ class Notify:
                 nlog.critical('Kann notify-send nicht finden, bitte installieren')
                 raise SystemExit(127)
             if not 'XDG_RUNTIME_DIR' in self.env:
-                self.env['XDG_RUNTIME_DIR'] = '/run/user/{}'.format(os.getuid())
+                self.env['XDG_RUNTIME_DIR'] = f'/run/user/{os.getuid()}'
         self.ssh = {
-            'host': self.config.find('notify', 'host', 'localhost'),
-            'user': self.config.find('notify', 'user', self.env['LOGNAME']),
-            'port': self.config.find('notify', 'port', 22),
-            'pipe': self.config.find('notify', 'pipe', False),
-            'remote': self.config.find('notify', 'remotekey',
-                self.config.find('info', 'stripped_name',
+            'host': Config.get().find('notify', 'host', 'localhost'),
+            'user': Config.get().find('notify', 'user', self.env['LOGNAME']),
+            'port': Config.get().find('notify', 'port', 22),
+            'pipe': Config.get().find('notify', 'pipe', False),
+            'remote': Config.get().find('notify', 'remotekey',
+                Config.get().find('info', 'stripped_name',
                     self.friendly))
         }
         if self.ssh['pipe'] in ('no', 'nein', 'false'):
@@ -95,7 +85,7 @@ class Notify:
                      + oneline(errs),
                      head='Backup-Fehler {}',
                      urgency='critical',
-                     timeout=self.config.timeout('fatal', 60*60*1000)
+                     timeout=Config.get().timeout('fatal', 60*60*1000)
                      )
         else:
             nlog.info('content-type: text/x-plain-log')
@@ -108,7 +98,7 @@ class Notify:
             subject='SUCCESS',
             urgency='low',
             head='Backup {}: Erfolg',
-            timeout=self.config.timeout('success', 4*1000)
+            timeout=Config.get().timeout('success', 4*1000)
             )
 
     def fatal(self, *args):
@@ -116,7 +106,7 @@ class Notify:
             subject='WTF!',
             urgency='critical',
             head='Backup-Fehler (Fatal): {}',
-            timeout=self.config.timeout('fatal', 60*60*1000)
+            timeout=Config.get().timeout('fatal', 60*60*1000)
             )
 
     def start(self, *args):
@@ -124,7 +114,7 @@ class Notify:
             subject='START',
             urgency='low',
             head='Starte Backup {}',
-            timeout=self.config.timeout('start', 4*1000)
+            timeout=Config.get().timeout('start', 4*1000)
             )
 
     def deadtime(self, *args):
@@ -132,7 +122,7 @@ class Notify:
             subject='DEADTIME',
             urgency='low',
             head='Backup {}: Braucht noch nicht wieder',
-            timeout=self.config.timeout('deadtime', 2*1000)
+            timeout=Config.get().timeout('deadtime', 2*1000)
             )
 
     def abort(self, *args):
@@ -140,7 +130,7 @@ class Notify:
             subject='ABORT',
             urgency='normal',
             head='Backup {} abgebrochen',
-            timeout=self.config.timeout('abort', 10*1000)
+            timeout=Config.get().timeout('abort', 10*1000)
             )
 
     def fail(self, *args):
@@ -148,20 +138,37 @@ class Notify:
             subject='FAIL',
             urgency='critical',
             head='Backup {}: Fehler',
-            timeout=self.config.timeout('fail', 60*1000)
+            timeout=Config.get().timeout('fail', 60*1000)
             )
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="""Show and send a notification""")
-    Notify.add_options(parser)
-    Config.add_options(parser)
-    log.add_options(parser)
-    parser.add_argument('--level', required=True,
-            choices='abort deadtime fail fatal start success'.split())
-    parser.add_argument('notification_text', nargs='+')
-    cmdopts = parser.parse_args()
+class Notify:
+    _instance = None
 
-    nlog = log.get_logger('notify', cmdopts)
-    config_ = Config.get_config(cmdopts)
-    notify = Notify(config_, show=cmdopts.notification_show)
-    getattr(notify, cmdopts.level)(*cmdopts.notification_text)
+    @classmethod
+    def add_options(cls, ap):
+        group = ap.add_argument_group('Notification')
+        group.add_argument('--notify',
+                            action=argparse.BooleanOptionalAction,
+                            dest='notification_show',
+                            help="Don't show notification on screen",
+                            required=False,
+                            default=True)
+
+    @classmethod
+    def add_subparser(cls, sp):
+        ap = sp.add_parser('notify', help='Write Notifications to libnotify and remote server')
+        ap.add_argument('--level', required=True,
+            choices='abort deadtime fail fatal start success'.split())
+        ap.add_argument('notification_text', nargs='+')
+
+    @classmethod
+    def init(cls, **kwargs):
+        cls._instance = _Notify(**kwargs)
+
+    @classmethod
+    def get(cls):
+        return cls._instance
+
+    @classmethod
+    def standalone(cls, args):
+        getattr(cls._instance, args.level)(*args.notification_text)
