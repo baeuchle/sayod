@@ -1,29 +1,7 @@
 #!/usr/bin/python3
 
-"""Reads new log entries from STDIN and adds them to the appropriate
-log. Communication follows text/x-plain-log type"""
+from receiver import Receiver
 
-import sys
-
-from config import Config
-from taggedlog import TaggedLog, FromStream
-import log
-
-line = sys.stdin.readline().strip()
-content_type = "text/x-plain-log"
-if line.startswith("content-type: "):
-    content_type = line[len("content-type: "):]
-    line = sys.stdin.readline().strip()
-
-rlog = log.get_logger('receiver', 30)
-config = Config.get_config(line)
-status_file = config.find('status', 'file', None)
-if status_file is None:
-    rlog.warning("Status file cannot be determined")
-    raise SystemExit(1)
-log_obj = TaggedLog(status_file, 'a+')
-
-entry = FromStream(sys.stdin, content_type)
-
-log_obj.append(entry)
-raise SystemExit(0)
+if __name__ == '__main__':
+    Receiver.init_from_stdin() # TODO: in one common file
+    Receiver.standalone()
