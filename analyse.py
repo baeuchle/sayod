@@ -4,7 +4,8 @@ import logging
 from config import Config
 from gitversion import Git
 from mailer import Mailer
-from taggedlog import TaggedEntry, TaggedLog
+from taggedentry import TaggedEntry
+from taggedlog import TaggedLog
 
 alog = logging.getLogger('backup.analyse')
 
