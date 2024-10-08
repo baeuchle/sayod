@@ -5,7 +5,7 @@
 from pathlib import Path
 import logging
 
-tlog = logging.getLogger('backup.tester')
+tlog = logging.getLogger(__name__)
 
 # pylint: disable=too-few-public-methods
 

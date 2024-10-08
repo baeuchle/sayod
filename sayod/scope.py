@@ -1,9 +1,9 @@
 from datetime import date, timedelta
 import logging
 
-from config import Config
+from .config import Config
 
-slog = logging.getLogger('backup.scope')
+slog = logging.getLogger(__name__)
 
 class Scope:
     INTO_DEFAULTS = {'monthly': True, 'weekly': False, 'daily': False}

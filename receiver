@@ -1,7 +1,0 @@
-#!/usr/bin/python3
-
-from receiver import Receiver
-
-if __name__ == '__main__':
-    Receiver.init_from_stdin() # TODO: in one common file
-    Receiver.standalone()

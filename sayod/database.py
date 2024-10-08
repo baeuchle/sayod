@@ -3,12 +3,12 @@ import os
 from pathlib import Path
 import subprocess
 
-from config import Config
-from gitversion import Git
-from notify import Notify, oneline
-from small_commit import make_small_commit
+from .config import Config
+from .gitversion import Git
+from .notify import Notify, oneline
+from .small_commit import make_small_commit
 
-dblog = logging.getLogger('backup.database')
+dblog = logging.getLogger(__name__)
 
 class _Database:
     def __init__(self):

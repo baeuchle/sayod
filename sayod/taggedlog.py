@@ -1,5 +1,5 @@
 import datetime
-from taggedentry import TaggedEntry
+from .taggedentry import TaggedEntry
 
 class TaggedLog:
     def __init__(self, log_file, mode='r'):
@@ -7,7 +7,7 @@ class TaggedLog:
         self.file_obj = None
         if self.log_file == "":
             raise AttributeError("Cannot find out where log is kept")
-        self.file_obj = open(self.log_file, mode, 'encoding=utf-8')
+        self.file_obj = open(self.log_file, mode, encoding='utf-8')
 
     def __del__(self):
         if self.file_obj is not None:

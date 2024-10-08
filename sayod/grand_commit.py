@@ -2,11 +2,11 @@ import datetime
 import logging
 from pathlib import Path
 
-from config import Config
-from gitversion import Git
-from notify import Notify
+from .config import Config
+from .gitversion import Git
+from .notify import Notify
 
-gclog = logging.getLogger('backup.grand_commit')
+gclog = logging.getLogger(__name__)
 
 class GrandCommit:
     @classmethod

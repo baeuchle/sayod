@@ -1,12 +1,12 @@
 import logging
 
-from config import Config
-from context import Context
-import deadtime
-from notify import Notify
-from rsync import RSync
+from .config import Config
+from .context import Context
+from .deadtime import DeadTime
+from .notify import Notify
+from .rsync import RSync
 
-clog = logging.getLogger('backup.copy')
+clog = logging.getLogger(__name__)
 
 def find_sources():
     source = Config.get().find('source', 'path', None)
@@ -27,7 +27,7 @@ def find_sources():
     return list(sls.values())
 
 def do_copy(**kwargs):
-    if not deadtime.test_deadtime(kwargs.get('force', False)):
+    if not DeadTime.test(kwargs.get('force', False)):
         raise SystemExit(0)
     Notify.get().start("Starte Backup")
     sources = find_sources()
@@ -54,7 +54,7 @@ class Copy:
         ap = sp.add_parser('copy',
             help="Creates Backups by rsync'ing and notifies about the success of failure thereof."
         )
-        deadtime.add_options(ap)
+        DeadTime.add_options(ap)
 
     @classmethod
     def standalone(cls, args):

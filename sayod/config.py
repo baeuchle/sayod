@@ -6,12 +6,12 @@ import logging
 import os
 from pathlib import Path
 
-clog = logging.getLogger('backup.config')
+clog = logging.getLogger(__name__)
 
 class _Config:
     @classmethod
     def basedir(cls):
-        return Path.home() / '.config' / 'backup'
+        return Path.home() / '.config' / 'sayod'
 
     def __init__(self, filename):
         if isinstance(filename, str):

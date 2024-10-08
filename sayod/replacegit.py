@@ -1,11 +1,11 @@
 import datetime
 import logging
 
-from config import Config
-from gitversion import Git
-from notify import Notify
+from .config import Config
+from .gitversion import Git
+from .notify import Notify
 
-rglog = logging.getLogger('backup.replace-git')
+rglog = logging.getLogger(__name__)
 
 class ReplaceGit:
     @classmethod

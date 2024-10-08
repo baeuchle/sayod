@@ -3,7 +3,7 @@
 import logging
 from systemd.journal import JournalHandler
 
-root_log = logging.getLogger('backup')
+root_log = logging.getLogger('sayod')
 
 class Log:
     @classmethod
@@ -23,7 +23,7 @@ class Log:
     @classmethod
     def init_root(cls):
         root_log.setLevel(logging.DEBUG)
-        jh = JournalHandler(SYSLOG_IDENTIFIER='backup')
+        jh = JournalHandler(SYSLOG_IDENTIFIER='sayod')
         jf = logging.Formatter('%(name)s: %(message)s')
         jh.setFormatter(jf)
         root_log.addHandler(jh)

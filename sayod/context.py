@@ -1,10 +1,10 @@
 from contextlib import ExitStack
 import logging
 
-from config import Config
-from provider import ProviderFactory, ProvideError
+from .config import Config
+from .provider import ProviderFactory, ProvideError
 
-clog = logging.getLogger('backup.context')
+clog = logging.getLogger(__name__)
 
 class Context:
     def __init__(self, provider_list = None):

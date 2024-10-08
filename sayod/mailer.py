@@ -3,10 +3,10 @@ from email.message import EmailMessage
 from smtplib import SMTP
 from gnupg import GPG
 
-from config import Config
-from taggedlog import TaggedEntry
+from .config import Config
+from .taggedlog import TaggedEntry
 
-mlog = logging.getLogger('backup.mailer')
+mlog = logging.getLogger(__name__)
 
 class Mailer:
     def __init__(self, content):

@@ -9,8 +9,8 @@ import os
 from subprocess import run, Popen, PIPE, DEVNULL
 import textwrap
 
-from config import Config
-nlog = logging.getLogger('backup.notify')
+from .config import Config
+nlog = logging.getLogger(__name__)
 
 def oneline(text):
     return text.strip().replace('\n', ' ')

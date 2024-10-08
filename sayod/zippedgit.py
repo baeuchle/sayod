@@ -5,10 +5,10 @@ from subprocess import run
 
 import regex as re
 
-from config import Config
-from gitversion import Git
+from .config import Config
+from .gitversion import Git
 
-zglog = logging.getLogger('backup.zipped-git')
+zglog = logging.getLogger(__name__)
 
 class _ZippedGit:
     def __init__(self, gitdir):

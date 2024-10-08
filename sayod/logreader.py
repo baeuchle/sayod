@@ -1,12 +1,11 @@
 import sys
 import logging
 
-from config import Config
-from taggedlog import TaggedLog
+from .config import Config
+from .log import Log
+from .taggedlog import TaggedLog
 
-lrlog = logging.getLogger('backup.readlog')
-
-# This needs its own executable because --config is not mandatory here.
+lrlog = logging.getLogger(__name__)
 
 def get_subjects(args):
     if args is None:
@@ -39,7 +38,7 @@ def read_log(args):
     entries = log_obj.find(subjects=subject_list, action=action)
     return entries
 
-class ReadLog:
+class LogReader:
     @classmethod
     def add_subparser(cls, sp):
         ap = sp.add_parser('readlog',
@@ -53,3 +52,15 @@ class ReadLog:
     @classmethod
     def standalone(cls, args):
         return read_log(args)
+
+# entry point for 'logreader' command as created by installing the wheel
+def logreader():
+    Log.init_root()
+    line = sys.stdin.readline().strip()
+    content_type = "text/x-plain-ask"
+    if line.startswith("content-type: "):
+        content_type = line[len("content-type: "):]
+        line = sys.stdin.readline().strip()
+    Config.init_file(line)
+
+    print(LogReader.standalone(None))

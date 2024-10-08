@@ -3,10 +3,10 @@ import logging
 from pathlib import Path
 import subprocess
 
-from config import Config
-from notify import Notify
+from .config import Config
+from .notify import Notify
 
-rlog = logging.getLogger('backup.rsync')
+rlog = logging.getLogger(__name__)
 
 class RSync:
     # pylint: disable=too-many-instance-attributes

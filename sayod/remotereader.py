@@ -7,9 +7,9 @@ import datetime
 import logging
 from subprocess import Popen, PIPE
 
-from notify import Notify, oneline
+from .notify import Notify, oneline
 
-lrlog = logging.getLogger('backup.remotereader')
+lrlog = logging.getLogger(__name__)
 
 LAST = "last"
 

@@ -6,11 +6,11 @@ from datetime import datetime
 import logging
 from pathlib import Path
 
-from gitversion import Git
-from config import Config
-from notify import Notify
+from .gitversion import Git
+from .config import Config
+from .notify import Notify
 
-sclog = logging.getLogger('backup.small_commit')
+sclog = logging.getLogger(__name__)
 
 def make_small_commit(gitobj, addables):
     for pattern in Config.get().find('git', 'add', '').split():

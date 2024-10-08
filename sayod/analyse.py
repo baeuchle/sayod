@@ -1,13 +1,13 @@
 import datetime
 import logging
 
-from config import Config
-from gitversion import Git
-from mailer import Mailer
-from taggedentry import TaggedEntry
-from taggedlog import TaggedLog
+from .config import Config
+from .gitversion import Git
+from .mailer import Mailer
+from .taggedentry import TaggedEntry
+from .taggedlog import TaggedLog
 
-alog = logging.getLogger('backup.analyse')
+alog = logging.getLogger(__name__)
 
 class _Analyse:
     def __init__(self):

@@ -1,16 +1,16 @@
 import argparse
 import logging
 
-from config import Config
-from gitversion import Git, STDOUT
-import scope
+from .config import Config
+from .gitversion import Git, STDOUT
+from .scope import Scope
 
-slog = logging.getLogger('backup.squasher')
+slog = logging.getLogger(__name__)
 
 class _Squasher:
     def __init__(self, args):
         self.git = Git(Config.get().find('target', 'path', args.directory), stderr=STDOUT)
-        self.sc = scope.Scope(args.scope, args.keep_previous)
+        self.sc = Scope(args.scope, args.keep_previous)
         self.squashables = set()
 
     def handle(self):

@@ -1,10 +1,11 @@
 import logging
 import sys
 
-from config import Config
-from taggedlog import TaggedLog, FromStream
+from .config import Config
+from .log import Log
+from .taggedlog import TaggedLog, FromStream
 
-rlog = logging.getLogger('backup.receiver')
+rlog = logging.getLogger(__name__)
 
 class _Receiver:
     def __init__(self, content_type):
@@ -43,3 +44,9 @@ class Receiver:
             line = sys.stdin.readline().strip()
         Config.init_file(line)
         _instance = _Receiver(content_type)
+
+# entry point for 'receiver' command as created by installing the wheel
+def receiver():
+    Log.init_root()
+    Receiver.init_from_stdin()
+    Receiver.standalone(None)

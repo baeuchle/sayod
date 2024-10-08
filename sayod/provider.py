@@ -18,11 +18,10 @@ import select
 import subprocess
 import sys
 
-from config import Config
+from .config import Config
+from .tester import TesterFactory
 
-from tester import TesterFactory
-
-plog = logging.getLogger('backup.provider')
+plog = logging.getLogger(__name__)
 
 class ProvideError(Exception):
     pass
