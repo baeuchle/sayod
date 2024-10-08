@@ -1,47 +1,23 @@
-#!/usr/bin/python3
-
 """Read backup configuration"""
 
-import argparse
 import configparser
 import errno
-from pathlib import Path
+import logging
 import os
+from pathlib import Path
 
-import log
+clog = logging.getLogger(__name__)
 
-clog = log.get_logger('config')
-
-class Config:
+class _Config:
     @classmethod
     def basedir(cls):
-        return Path.home() / '.config' / 'backup'
-
-    @classmethod
-    def add_options(cls, ap, **kwargs):
-        group = ap.add_argument_group('Configuration')
-        optname = kwargs.get('optname', 'config')
-        group.add_argument('--' + optname,
-                            action='store',
-                            dest='configuration_file',
-                            help='name of the configuration file',
-                            required=True)
-
-    @classmethod
-    def get_config(cls, config_file, **kwargs):
-        if isinstance(config_file, argparse.Namespace):
-            return cls.get_config(config_file.configuration_file, **kwargs)
-        try:
-            return Config(config_file)
-        except FileNotFoundError as fnfe:
-            clog.critical("%s %s", fnfe.strerror, fnfe.filename)
-            raise SystemExit(kwargs.get('failure_exit', 1))
+        return Path.home() / '.config' / 'sayod'
 
     def __init__(self, filename):
         if isinstance(filename, str):
             filename = Path(filename)
         if not filename.is_absolute():
-            filename = Config.basedir() / filename
+            filename = _Config.basedir() / filename
         ini_obj = configparser.ConfigParser(
             interpolation=configparser.ExtendedInterpolation()
         )
@@ -56,7 +32,8 @@ class Config:
             raise FileNotFoundError(errno.ENOENT, "Configuration file not found", str(filename))
         # add environment variables to [env]; this allows to use them in
         # interpolation directives.
-        ini_obj.read_dict({'env': os.environ,
+        env = { x: y.replace("$", "＄") for x, y in os.environ.items() }
+        ini_obj.read_dict({'env': env,
                            'info': {'stripped_name': filename.stem}
                           })
         # if there is a section [defaults], then use each value as a
@@ -68,8 +45,7 @@ class Config:
                     path = filename.parents[0] / def_file
                 if len(ini_obj.read(str(path))) == 0:
                     raise FileNotFoundError(errno.ENOENT,
-                        "defaults file {} not found".format(tag),
-                        def_file)
+                        f"defaults file {tag} not found", def_file)
         # re-read original file to override defaults:
         ini_obj.read(variants)
         self.configuration = ini_obj
@@ -93,24 +69,39 @@ class Config:
     def find_section(self, section):
         return self.configuration[section]
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Returns configuration parameters')
-    parser.add_argument('--section', required=True, help='Configuration file section')
-    parser.add_argument('--key', required=True, help='Configuration section key')
-    parser.add_argument('--default', required=False, default=None,
-                        help='Return this string if no entry found')
-    Config.add_options(parser)
-    log.add_options(parser)
-    args = parser.parse_args()
+class Config:
+    _instance = None
 
-    clog = log.get_logger('config', args)
-    if args.section == '.' and args.key == '.':
-        cobj = Config.get_config(args, failure_exit=2)
-        raise SystemExit(0)
-    cobj = Config.get_config(args)
-    data = cobj.find(args.section, args.key, args.default)
-    if data is not None:
-        print(data)
-        raise SystemExit(0)
-    else:
-        raise SystemExit(1)
+    @classmethod
+    def add_options(cls, ap, **kwargs):
+        group = ap.add_argument_group('Configuration')
+        optname = kwargs.get('optname', 'config')
+        group.add_argument('--' + optname,
+                            action='store',
+                            dest='configuration_file',
+                            help='name of the configuration file',
+                            required=True)
+
+    @classmethod
+    def add_subparser(cls, sp):
+        ap = sp.add_parser('config', help='directly read values from configuration')
+        ap.add_argument('--section', required=True, help='Configuration file section')
+        ap.add_argument('--key', required=True, help='Configuration section key')
+        ap.add_argument('--default', required=False, default=None,
+                        help='Return this string if no entry found')
+
+    @classmethod
+    def init_file(cls, path):
+        cls._instance = _Config(path)
+
+    @classmethod
+    def init_args(cls, args):
+        cls.init_file(args.configuration_file)
+
+    @classmethod
+    def get(cls):
+        return cls._instance
+
+    @classmethod
+    def standalone(cls, args):
+        return cls.get().find(args.section, args.key, args.default)

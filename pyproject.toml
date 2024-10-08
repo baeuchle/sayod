@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sayod"
+# version = "4.0.0.0"
+description = "Sayod /ˈseɪəd/: SAve Your Own Data. Say It: Backups are good!"
+authors = [{ name="Bjørn Bäuchle", email="sayod@frankfurtium.de" }]
+maintainers = [{ name="Bjørn Bäuchle", email="sayod@frankfurtium.de" }]
+
+license = { file="LICENSE" }
+dynamic = ["version"]
+# really, 3.9 because argparse.BooleanOptionalAction
+requires-python = ">= 3.8"
+dependencies = [
+  "gnupg",
+  "systemd-python",
+  "regex"
+]
+keywords = ["backup", "git", "dump database", "squash"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: System :: Archiving :: Backup",
+]
+
+[project.scripts]
+sayod-backup = "sayod:backup"
+logreader = "sayod:logreader"
+receiver = "sayod:receiver"
+
+[tool.setuptools_scm]
+version_file = "sayod/_version.py"

@@ -2,5 +2,5 @@
 	path = taggedlog
 	url = git@frankfurtium.de:pylib/taggedlog.git
 [submodule "gitversion"]
-	path = gitversion
+	path = sayod/gitversion
 	url = git@frankfurtium.de:pylib/gitversion.git

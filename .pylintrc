@@ -7,9 +7,7 @@ extension-pkg-whitelist=
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
-ignore=CVS,
-    credentials.py,
-    .pylintrc
+ignore=.pylintrc
 
 # Add files or directories matching the regex patterns to the blacklist. The
 # regex matches against base names, not paths.
@@ -64,10 +62,11 @@ confidence=
 # --disable=W".
 disable=invalid-name,
         missing-class-docstring,
+        missing-module-docstring,
         missing-function-docstring,
-        bad-continuation,
         duplicate-code,
-        super-init-not-called
+        super-init-not-called,
+        too-few-public-methods
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -336,13 +335,6 @@ max-line-length=100
 # Maximum number of lines in a module.
 max-module-lines=1000
 
-# List of optional constructs for which whitespace checking is disabled. `dict-
-# separator` is used to allow tabulation in dicts, etc.: {1  : 1,\n222: 2}.
-# `trailing-comma` allows a space between comma and closing bracket: (a, ).
-# `empty-line` allows space-only lines.
-no-space-check=trailing-comma,
-               dict-separator
-
 # Allow the body of a class to be on the same line as the declaration if body
 # contains single statement.
 single-line-class-stmt=no
@@ -502,10 +494,3 @@ max-statements=50
 # Minimum number of public methods for a class (see R0903).
 min-public-methods=2
 
-
-[EXCEPTIONS]
-
-# Exceptions that will emit a warning when being caught. Defaults to
-# "BaseException, Exception".
-overgeneral-exceptions=BaseException,
-                       Exception

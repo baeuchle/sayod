@@ -3,9 +3,9 @@
 """
 
 from pathlib import Path
-import log
+import logging
 
-tlog = log.get_logger('pyb.tester')
+tlog = logging.getLogger(__name__)
 
 # pylint: disable=too-few-public-methods
 

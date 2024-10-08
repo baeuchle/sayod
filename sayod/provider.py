@@ -2,6 +2,7 @@
     Tasks for providing source and target(s).
 """
 
+import logging
 import os
 from pathlib import Path
 try:
@@ -17,11 +18,10 @@ import select
 import subprocess
 import sys
 
-import log
+from .config import Config
+from .tester import TesterFactory
 
-from tester import TesterFactory
-
-plog = log.get_logger('pyb.provider')
+plog = logging.getLogger(__name__)
 
 class ProvideError(Exception):
     pass
@@ -215,17 +215,18 @@ class AdbFsProvider(MountProvider):
             env_args['ANDROID_SERIAL'] = self.device
         return subprocess.run(command, text=True, capture_output=True, check=False, env=env_args)
 
-def ProviderFactory(name, config):
-    action = config.find(name, 'action', '')
+def ProviderFactory(name):
+    action = Config.get().find(name, 'action', '')
+    section = Config.get().find_section(name)
     plog.debug("Creating provider for %s", action)
     if action == 'manual':
-        return ManualProvider(name, config.find_section(name))
+        return ManualProvider(name, section)
     if action == 'sshfs':
-        return SshFsProvider(name, config.find_section(name))
+        return SshFsProvider(name, section)
     if action == 'adb':
-        return AdbProvider(name, config.find_section(name))
+        return AdbProvider(name, section)
     if action == 'adbfs':
-        return AdbFsProvider(name, config.find_section(name))
+        return AdbFsProvider(name, section)
     if action == 'mkdir':
-        return DirectoryProvider(name, config.find_section(name))
+        return DirectoryProvider(name, section)
     raise NotImplementedError(f"Provider for {action}")
