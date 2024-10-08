@@ -32,7 +32,8 @@ class _Config:
             raise FileNotFoundError(errno.ENOENT, "Configuration file not found", str(filename))
         # add environment variables to [env]; this allows to use them in
         # interpolation directives.
-        ini_obj.read_dict({'env': os.environ,
+        env = { x: y.replace("$", "＄") for x, y in os.environ.items() }
+        ini_obj.read_dict({'env': env,
                            'info': {'stripped_name': filename.stem}
                           })
         # if there is a section [defaults], then use each value as a
