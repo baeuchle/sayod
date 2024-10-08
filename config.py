@@ -7,7 +7,6 @@ import configparser
 import errno
 from pathlib import Path
 import os
-import sys
 
 import log
 
@@ -36,7 +35,7 @@ class Config:
             return Config(config_file)
         except FileNotFoundError as fnfe:
             clog.critical("%s %s", fnfe.strerror, fnfe.filename)
-            sys.exit(kwargs.get('failure_exit', 1))
+            raise SystemExit(kwargs.get('failure_exit', 1))
 
     def __init__(self, filename):
         if isinstance(filename, str):
@@ -86,8 +85,7 @@ class Config:
 
     def find(self, section, key, default):
         if self.configuration.has_option(section, key):
-            clog.debug("Found option %s::%s = %s",
-                section, key, self.configuration[section][key])
+            # logging what has been found may leak passwords.
             return self.configuration[section][key]
         clog.debug("Option %s::%s not found", section, key)
         return default
@@ -108,11 +106,11 @@ if __name__ == "__main__":
     clog = log.get_logger('config', args)
     if args.section == '.' and args.key == '.':
         cobj = Config.get_config(args, failure_exit=2)
-        sys.exit(0)
+        raise SystemExit(0)
     cobj = Config.get_config(args)
     data = cobj.find(args.section, args.key, args.default)
     if data is not None:
         print(data)
-        sys.exit(0)
+        raise SystemExit(0)
     else:
-        sys.exit(1)
+        raise SystemExit(1)

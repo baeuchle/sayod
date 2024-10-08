@@ -217,6 +217,7 @@ class AdbFsProvider(MountProvider):
 
 def ProviderFactory(name, config):
     action = config.find(name, 'action', '')
+    plog.debug("Creating provider for %s", action)
     if action == 'manual':
         return ManualProvider(name, config.find_section(name))
     if action == 'sshfs':

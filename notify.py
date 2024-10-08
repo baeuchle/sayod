@@ -6,7 +6,6 @@ sensible stuff"""
 import argparse
 import os
 from subprocess import run, Popen, PIPE, DEVNULL
-import sys
 import textwrap
 
 from config import Config
@@ -20,9 +19,9 @@ class Notify:
     @classmethod
     def add_options(cls, ap):
         group = ap.add_argument_group('Notification')
-        group.add_argument('--no-notify', '-N',
-                            action='store_true',
-                            dest='notification_dontshow',
+        group.add_argument('--notify',
+                            action=argparse.BooleanOptionalAction,
+                            dest='notification_show',
                             help="Don't show notification on screen",
                             required=False)
 
@@ -37,7 +36,7 @@ class Notify:
             wns = run(['which', 'notify-send'], check=False, stdout=DEVNULL, stderr=DEVNULL)
             if wns.returncode != 0:
                 nlog.critical('Kann notify-send nicht finden, bitte installieren')
-                sys.exit(127)
+                raise SystemExit(127)
             if not 'XDG_RUNTIME_DIR' in self.env:
                 self.env['XDG_RUNTIME_DIR'] = '/run/user/{}'.format(os.getuid())
         self.ssh = {
@@ -157,12 +156,12 @@ if __name__ == '__main__':
     Notify.add_options(parser)
     Config.add_options(parser)
     log.add_options(parser)
-    parser.add_argument('--level', required=False,
+    parser.add_argument('--level', required=True,
             choices='abort deadtime fail fatal start success'.split())
     parser.add_argument('notification_text', nargs='+')
     cmdopts = parser.parse_args()
 
     nlog = log.get_logger('notify', cmdopts)
-    config_ = Config(cmdopts.config)
-    notify = Notify(config_, show=not cmdopts.notification_dontshow)
+    config_ = Config.get_config(cmdopts)
+    notify = Notify(config_, show=cmdopts.notification_show)
     getattr(notify, cmdopts.level)(*cmdopts.notification_text)

@@ -5,7 +5,6 @@
 import argparse
 import subprocess
 from pathlib import Path
-import sys
 import os
 
 from small_commit import make_small_commit
@@ -17,6 +16,8 @@ from gitversion import Git
 dblog = log.get_logger('database')
 
 def oneline(text):
+    if not isinstance(text, str):
+        text = str(text)
     return text.replace("\n", " ")
 
 def dumpall(source, directory, notifier, environment, tblcmd, dumpcmd): # pylint: disable=too-many-arguments
@@ -25,7 +26,7 @@ def dumpall(source, directory, notifier, environment, tblcmd, dumpcmd): # pylint
     sqltables = subprocess.run(tblcmd, capture_output=True, env=environment, check=False)
     if sqltables.returncode != 0:
         notifier.fatal(f"Database table list cannot be read:\n{oneline(sqltables.stderr)}")
-        sys.exit(1)
+        raise SystemExit(1)
     for table_bytes in sqltables.stdout.split():
         table = table_bytes.decode('utf-8')
         dblog.info("Dumping table %s", table)
@@ -49,7 +50,7 @@ def create_dumps(databasetype, source, path, notifier, **kwargs):
     if databasetype == 'sqlite3':
         if not Path(source).exists():
             notifier.fatal(f'Database source {source} not found')
-            sys.exit(1)
+            raise SystemExit(1)
         tblcmd = ['sqlite3', source, '.tables']
         dumpcmd = ['sqlite3', source, '.dump {}']
     if databasetype == 'mysql':
@@ -68,7 +69,7 @@ args = parser.parse_args()
 
 dblog = log.get_logger('database', args)
 config = Config.get_config(args)
-notify = Notify(config, show=not args.notification_dontshow)
+notify = Notify(config, show=args.notification_show)
 
 dbtype = config.find('database', 'type', 'sqlite3')
 dumpdir = config.find('database', 'directory', Path.cwd())
@@ -77,7 +78,7 @@ git = Git(config.find('git', 'directory', dumpdir))
 dbsource = config.find('database', 'source', None)
 if not dbsource:
     notify.fatal("Kann Datenquelle nicht bestimmen (sollte in database::source stehen)")
-    sys.exit(1)
+    raise SystemExit(1)
 
 dblog.info("Dumping %s database %s to %s", dbtype, dbsource, dumpdir)
 
@@ -88,7 +89,7 @@ filelist = create_dumps(dbtype, dbsource, dumppath, notify,
 
 if not config.find('git', 'commit', False):
     notify.success("Database dump complete without source control")
-    sys.exit(0)
+    raise SystemExit(0)
 
 make_small_commit(config, git, notify, addables=filelist)
-sys.exit(0)
+raise SystemExit(0)

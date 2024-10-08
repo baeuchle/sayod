@@ -3,24 +3,19 @@
 """Copy stuff"""
 
 import argparse
-import datetime
-from contextlib import ExitStack
-from pathlib import Path
-import subprocess
-import sys
 
+import copy
 from config import Config
+import deadtime
 import log
-from notify import Notify, oneline
-from provider import ProviderFactory, ProvideError
-import remotereader
+from notify import Notify
 
 clog = log.get_logger('copy')
 
 parser = argparse.ArgumentParser(
     description="""Creates Backups and notifies about the success of failure thereof."""
 )
-parser.add_argument('--force', '-f', default=False, action='store_true', required=False)
+deadtime.add_options(parser)
 Config.add_options(parser)
 log.add_options(parser)
 Notify.add_options(parser)
@@ -28,115 +23,6 @@ args = parser.parse_args()
 
 clog = log.get_logger('copy', args)
 config = Config.get_config(args)
-notify = Notify(config, show=not args.notification_dontshow)
+notify = Notify(config, show=args.notification_show)
 
-deadtime = int(config.find('rsync', 'deadtime', 0))
-if deadtime > 0:
-    last_success = remotereader.remote(config, notify, 'SUCCESS', remotereader.LAST)
-    tage = (datetime.datetime.today() - last_success).days
-    if tage <= deadtime:
-        if not args.force:
-            notify.deadtime(f"Letztes erfolgreiches Backup war vor weniger als {deadtime} Tagen")
-            sys.exit(0)
-        clog.info("Deadtime ignored because --force was specified")
-    else:
-        clog.info("Deadtime is over")
-else:
-    clog.info("No deadtime given")
-
-notify.start("Starte Backup")
-
-source = config.find('source', 'path', None)
-sources = [source]
-if not source:
-    source_list = config.find('source', 'list', None)
-    if not source_list:
-        notify.fatal('Kann Quellpfad nicht bestimmen (sollte in source::path stehen)')
-        clog.critical('source::path or source::list should be present')
-        sys.exit(127)
-    try:
-        sls = config.find_section(source_list)
-    except KeyError as ke:
-        notify.fatal(f'Kann Quellenliste nicht finden ({source_list}::*)')
-        raise SystemExit(127) from ke
-    sources = []
-    for path in sls.values():
-        clog.debug('Appending path %s', path)
-        sources.append(path)
-target = config.find('target', 'path', None)
-if not target:
-    notify.fatal('Kann Zielpfad nicht bestimmen (sollte in target::path stehen')
-    sys.exit(127)
-exclude_file = config.find('source', 'exclude_file', None)
-clog.info("Sources %s", '; '.join(sources))
-clog.info("Target %s", target)
-clog.info("Exclude file %s", exclude_file)
-
-rsync_oneletters = '-via'
-if config.find('rsync', 'no_cross', '') == '-x':
-    rsync_oneletters = '-viax'
-
-rsync_options = config.find('rsync', 'options', '').split()
-rsync_options.append('--partial')
-if exclude_file:
-    rsync_options.append(f'--exclude-from={exclude_file}')
-
-providers = config.find('rsync', 'providers', '').split()
-with ExitStack() as es:
-    for prv in providers:
-        try:
-            es.enter_context(ProviderFactory(prv, config))
-        except ProvideError as pe:
-            raise SystemExit(1) from pe
-    copy_args = ['rsync',
-            *rsync_options,
-            rsync_oneletters,
-            *sources,
-            target
-        ]
-    popen_args = dict(stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    if config.find('rsync', 'privilege', '') == 'sudo':
-        copy_args.insert(0, 'sudo')
-        popen_args['stdin'] = subprocess.PIPE
-    with subprocess.Popen(copy_args, **popen_args) as proc:
-        clog.info("rsync is running...")
-        (out, err) = proc.communicate()
-        proc.wait()
-        clog.info("rsync has finished.")
-        stdout = out.split('\n')
-        stderr = err.split('\n')
-        returncode = proc.returncode
-    err_len = len(stderr)
-    error = ' '.join(stderr)
-    out_len = len(stdout)
-    clog.info("RSYNC done, exit code %d, %d log lines, %d error lines",
-            returncode, out_len, err_len)
-    outfile = datetime.datetime.now().strftime(config.find('rsync', 'outfile', ''))
-    outstr = f"{out_len} output lines"
-    code = f"{returncode}\n{error}"
-    clog.info("Return code: %d", returncode)
-    clog.debug("output: ##############")
-    for x in stdout:
-        clog.debug(x)
-    clog.debug("error: ###############")
-    for x in stderr:
-        clog.debug(x)
-    clog.debug("######################")
-    if outfile:
-        with Path(outfile).open("w+") as out:
-            out.write('\n'.join(stdout))
-        outstr = f"output in {outfile}"
-    if returncode == 0:
-        notify.success(f"{outstr}\n{error}")
-    elif returncode in (23, 24):
-        notify.success(f"Nicht alle Quelldateien konnten gelesen werden {returncode}\n{outstr}\n{error}")
-    elif returncode == 20:
-        notify.abort(f"Kopiervorgang abgebrochen {out_len}/{err_len} Zeilen\n{error}")
-    elif returncode in (1, 2, 4, 6):
-        notify.fatal(f"rsync falsch benutzt {code}")
-    elif returncode in (3, 5, 10, 11, 12, 13, 14, 21, 22):
-        notify.fail(f"rsync copy error {code}")
-    elif returncode in (25, 35, 40):
-        notify.fail(f"rsync other error {code}")
-    else:
-        notify.fail(f"Unknown rsync error {code}")
+copy.do_copy(config, notify, force=args.deadtime_force)

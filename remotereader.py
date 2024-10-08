@@ -17,14 +17,7 @@ LAST = "last"
 
 def remote(config, notify, subject, command):
     results = []
-    ssh = {
-        'host': config.find('notify', 'host', 'localhost'),
-        'user': config.find('notify', 'user', ''),
-        'port': config.find('notify', 'port', 22),
-        'pipe': config.find('notify', 'pipe', False),
-        'remote': config.find('notify', 'remotekey',
-            config.find('info', 'stripped_name', config.friendly))
-    }
+    ssh = notify.ssh
     with Popen(['ssh',
         '-l', ssh['user'],
               ssh['host'],
@@ -65,5 +58,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     lrlog = log.get_logger('logreader', args)
     config_ = Config(args.configuration_file)
-    notify_ = Notify(config_, show=not args.no_notify)
+    notify_ = Notify(config_, show=args.notification_show)
     print(remote(config_, notify_, args.subject, args.command))

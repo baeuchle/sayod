@@ -31,7 +31,7 @@ args = parser.parse_args()
 
 scope = args.scope
 squash_into_last = args.keep_previous
-llog = log.get_logger('layered', args)
+llog = log.get_logger('squasher', args)
 if args.configuration_file != "":
     config = Config.get_config(args)
     git = Git(config.find('target', 'path', args.directory), stderr=STDOUT)
@@ -40,35 +40,46 @@ else:
 
 squash_into_last_defaults = {'monthly': True, 'weekly': False, 'daily': False}
 
-today = date.today()
-time_fmt = '%Y-%m-%d'
-if scope == 'monthly':
-    end_date = today.replace(day=1)
-    start_date = (end_date - timedelta(days=1)).replace(day=1)
-elif scope == 'weekly':
-    end_date = today - timedelta(days=today.weekday()) # this is last monday midnight
-    start_date = end_date - timedelta(days=7)
-elif scope == 'daily':
-    end_date = today
-    start_date = today - timedelta(days=1)
-    time_fmt = '%Y-%m-%dT%H:%M:%S'
-else:
-    llog.error("Unkown scope %s", scope)
-    raise SystemExit(1)
+class Scope:
+    def __init__(self, scope):
+        self.scope = scope
+        today = date.today()
+        self.time_fmt = '%Y-%m-%d'
+        if scope == 'monthly':
+            self.end_date = today.replace(day=1)
+            self.start_date = (self.end_date - timedelta(days=1)).replace(day=1)
+        elif scope == 'weekly':
+            self.end_date = today - timedelta(days=today.weekday()) # this is last monday midnight
+            self.start_date = self.end_date - timedelta(days=7)
+        elif scope == 'daily':
+            self.end_date = today
+            self.start_date = today - timedelta(days=1)
+            self.time_fmt = '%Y-%m-%dT%H:%M:%S'
+        else:
+            llog.error("Unkown scope %s", scope)
+            raise ValueError("Unknown scope " + scope)
+        llog.debug('Scope %s from %s to %s', scope, self.end_date, self.start_date)
+
+    @property
+    def start_string(self):
+        return self.start_date.strftime(self.time_fmt)
+
+    @property
+    def end_string(self):
+        return self.end_date.strftime(self.time_fmt)
+
+sc = Scope(args.scope)
 if squash_into_last is None:
-    squash_into_last = config.find('squash', scope, squash_into_last_defaults[scope])
+    squash_into_last = config.find('squash', sc.scope, squash_into_last_defaults[sc.scope])
 
-start_string = start_date.strftime(time_fmt)
-end_string = end_date.strftime(time_fmt)
-
-output = git.commandlines('rev-list', f'--before={end_string}', f'--after={start_string}', 'HEAD')
+output = git.commandlines('rev-list', f'--before={sc.end_string}', f'--after={sc.start_string}', 'HEAD')
 squashables = set([x.strip() for x in output])
 
 if not squashables:
-    llog.info("No commits found between %s and %s.", start_string, end_string)
+    llog.info("No commits found between %s and %s.", sc.start_string, sc.end_string)
     raise SystemExit(0)
 else:
-    llog.info("Found %d commits between %s and %s", len(squashables), start_string, end_string)
+    llog.info("Found %d commits between %s and %s", len(squashables), sc.start_string, sc.end_string)
 first_commit = output[-1].strip()
 initial_commit =  git.command('rev-list', '--max-parents=0', 'HEAD').strip()
 
@@ -94,6 +105,9 @@ with orig_todo_file.open() as rebase_plan_file:
         stripped = line.strip()
         if not stripped:
             continue
+        if stripped == 'noop':
+            rebase_plan.append(stripped)
+            continue
         if stripped[0] == '#':
             continue
         words = stripped.split()
@@ -103,9 +117,9 @@ with orig_todo_file.open() as rebase_plan_file:
             rebase_plan.append(' '.join(words))
             # this is only necessary for the last fixup'ed commit, but it is fast and doesn't really
             # hurt to do multiple times.
-            rebase_plan.append(f'exec GIT_COMMITTER_DATE="{end_date:%Y-%m-%d:%H:%M:%S}" ' +
-                               f'git commit --amend --no-edit --date="{end_string}" ' +
-                               f'-m "{scope} backup from {end_string}"')
+            rebase_plan.append(f'exec GIT_COMMITTER_DATE="{sc.end_date:%Y-%m-%d:%H:%M:%S}" ' +
+                               f'git commit --amend --no-edit --date="{sc.end_string}" ' +
+                               f'-m "{sc.scope} backup from {sc.end_string}"')
         else:
             rebase_plan.append(stripped)
             rebase_plan.append('exec GIT_COMMITTER_DATE="$(git log -1 --format=%ad)" ' +

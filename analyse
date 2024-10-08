@@ -6,7 +6,6 @@ import argparse
 import datetime
 from email.message import EmailMessage
 from smtplib import SMTP
-import sys
 from gnupg import GPG
 
 from config import Config
@@ -19,8 +18,8 @@ Config.add_options(parser)
 log.add_options(parser)
 args = parser.parse_args()
 
-log = log.get_logger('analyse', args)
-config = Config.get_config(parser)
+alog = log.get_logger('analyse', args)
+config = Config.get_config(args)
 log_obj = TaggedLog(config.find('status', 'file', ''), 'a+')
 
 warn_missing_success = config.find("status", "warn_missing", 9)
@@ -39,6 +38,7 @@ if last_success is None:
         "Es wurde noch nie ein erfolgreiches Backup gemacht",
         "NEVER"
     )
+    alog.info(last_success.content)
 elif last_success.date < warn_missing_since:
     msg = config.find("messages", "warn_missing",
         "Last successful backup was before {last_success.date:%Y.%m.%d %H:%M}."
@@ -50,7 +50,7 @@ elif last_success.date < warn_missing_since:
     if last_start is not None:
         msg += "\n\n"
         msg += config.find("messages", "report_last_started",
-            "Last backup was at {last_start.date:%Ym.%m.%d %H:%M}"
+            "Last backup was at {last_start.date:%Y.%m.%d %H:%M}"
         ).format(
             last_start=last_start,
             diff=(now - last_start.date)
@@ -62,6 +62,7 @@ elif last_success.date < warn_missing_since:
         )
     last_success.content = msg.strip().replace('\n', "\\n")
     error_log['WARN'].append(last_success)
+    alog.warning(last_success.content)
 
 last_analysis = log_obj.find(subjects=["ANALYSE", "MAIL"], action='last')
 if last_analysis is None:
@@ -87,7 +88,7 @@ for cat in error_log:
 
 if totcount == 0 or totcount == len(error_log['NOTIFY']):
     # nothing to report: yee-hah!
-    sys.exit(0)
+    raise SystemExit(0)
 
 mail_message = config.find('messages', 'opening', "Hallo")
 mail_message += "\n"
@@ -146,8 +147,8 @@ if mailprg == 'mail':
             s.send_message(msg)
         except BaseException as be: # pylint: disable=broad-except
             log_obj.append(TaggedEntry(str(be), "NOMAIL"))
-            sys.exit(2)
+            raise SystemExit(2)
     log_obj.append(TaggedEntry(msg['To'], "MAIL"))
-    sys.exit(0)
+    raise SystemExit(0)
 
 print(mail_message)
