@@ -1,12 +1,42 @@
 from contextlib import ExitStack
+import datetime
 import logging
 
 from .config import Config
+from .notify import Notify
 from .provider import ProviderFactory, ProvideError
+from .remotereader import remote, LAST
 
 clog = logging.getLogger(__name__)
 
 class Context:
+    @classmethod
+    def add_options(cls, parser):
+        parser.add_argument('--force', '-f',
+                            default=False,
+                            action='store_true',
+                            required=False,
+                            help="Ignore deadtime and force action",
+                            dest="context_force")
+
+    @classmethod
+    def test_deadtime(cls, force):
+        deadtime = int(Config.get().find('rsync', 'deadtime', 0))
+        if deadtime <= 0:
+            clog.debug("No deadtime given, going ahead")
+            return True
+        last_success = remote('SUCCESS', LAST)
+        tage = (datetime.datetime.today() - last_success).days
+        if tage > deadtime:
+            clog.info("Deadtime is over")
+            return True
+        if not force:
+            Notify.get().deadtime(
+                    f"Letztes erfolgreiches Backup war vor weniger als {deadtime} Tagen")
+            return False
+        clog.info("Deadtime ignored because --force was specified")
+        return True
+
     def __init__(self, provider_list = None):
         if provider_list is None:
             provider_list = []
