@@ -15,6 +15,7 @@ from .replacegit import ReplaceGit
 from .small_commit import SmallCommit
 from .squasher import Squasher
 from .zippedgit import ZippedGit
+from .version import __version__
 
 blog = logging.getLogger('sayod.exe')
 
