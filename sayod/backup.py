@@ -21,6 +21,7 @@ blog = logging.getLogger('sayod.exe')
 
 def backup():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     Log.add_options(parser)
     Config.add_options(parser)
     Notify.add_options(parser)
