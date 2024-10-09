@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 import argparse
 import logging
 
@@ -17,11 +15,13 @@ from .replacegit import ReplaceGit
 from .small_commit import SmallCommit
 from .squasher import Squasher
 from .zippedgit import ZippedGit
+from .version import __version__
 
 blog = logging.getLogger('sayod.exe')
 
 def backup():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     Log.add_options(parser)
     Config.add_options(parser)
     Notify.add_options(parser)

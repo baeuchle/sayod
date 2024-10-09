@@ -24,6 +24,7 @@ class Log:
     def init_root(cls):
         root_log.setLevel(logging.DEBUG)
         jh = JournalHandler(SYSLOG_IDENTIFIER='sayod')
+        jh.setLevel(logging.DEBUG)
         jf = logging.Formatter('%(name)s: %(message)s')
         jh.setFormatter(jf)
         root_log.addHandler(jh)
