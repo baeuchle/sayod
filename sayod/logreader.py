@@ -41,17 +41,17 @@ def read_log(args):
 class LogReader:
     @classmethod
     def add_subparser(cls, sp):
-        ap = sp.add_parser('readlog',
+        ap = sp.add_parser('logreader',
                         help='''Read log. Used for remote access mostly''')
         ap.add_argument('--action',
                         help='specify which action should be read from the log',
                         default='list',
                         choices='last count first list'.split())
-        ap.add_argument('--subject', nargs='+',
+        ap.add_argument('--subject', nargs='+', default=[],
                         help='for which subjects should the action be taken?')
     @classmethod
     def standalone(cls, args):
-        return read_log(args)
+        return '\n'.join(list(str(x) for x in read_log(args)))
 
 # entry point for 'logreader' command as created by installing the wheel
 def logreader():

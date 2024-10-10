@@ -84,7 +84,7 @@ class RSync:
         rlog.info("RSYNC done, exit code %d, %d log lines, %d error lines",
             self.returncode, self.out_len, self.err_len)
         error = ' '.join(self.stderr)
-        code = '{self.returncode}\n{error}'
+        code = f'{self.returncode}\n{error}'
         if self.returncode == 0:
             Notify.get().success('\n'.join([self.short_out, error]))
         elif self.returncode in (23, 24):

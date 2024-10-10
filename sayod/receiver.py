@@ -31,9 +31,9 @@ class Receiver:
 
     @classmethod
     def standalone(cls, _):
-        if _instance is None:
-            _instance = _Receiver('text/x-plain-log')
-        _instance.run()
+        if cls._instance is None:
+            cls._instance = _Receiver('text/x-plain-log')
+        cls._instance.run()
 
     @classmethod
     def init_from_stdin(cls):
@@ -43,7 +43,7 @@ class Receiver:
             content_type = line[len("content-type: "):]
             line = sys.stdin.readline().strip()
         Config.init_file(line)
-        _instance = _Receiver(content_type)
+        cls._instance = _Receiver(content_type)
 
 # entry point for 'receiver' command as created by installing the wheel
 def receiver():
