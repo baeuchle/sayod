@@ -33,9 +33,9 @@ class TaggedLog:
                 opts['subjects'].append(kwargs['subject'])
         result = []
         if opts['action'] == 'last':
-            result = None
+            result.append(None)
         if opts['action'] == 'count':
-            result = 0
+            result.append(0)
         for entry in self:
             if entry.date < opts['since']:
                 continue
@@ -45,11 +45,11 @@ class TaggedLog:
                 continue
             # we've got a match!
             if opts['action'] == 'count':
-                result += 1
+                result[0] += 1
             if opts['action'] == 'first':
-                return entry
+                return [entry]
             if opts['action'] == 'last':
-                result = entry
+                result[0] = entry
             if opts['action'] == 'list':
                 result.append(entry)
         return result
