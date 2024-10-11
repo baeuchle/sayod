@@ -19,7 +19,7 @@ from .version import __version__
 
 blog = logging.getLogger('sayod.exe')
 
-def backup():
+def _backup():
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     Log.add_options(parser)
@@ -50,3 +50,9 @@ def backup():
             blog.info("Program succeeded")
             raise SystemExit(0)
     blog.error("Unkown subcommand in %s", str(args))
+
+def backup():
+    try:
+        _backup()
+    except Exception:
+        blog.exception("Program failed hard")
