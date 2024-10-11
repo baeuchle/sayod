@@ -44,10 +44,10 @@ def backup():
     args = parser.parse_args()
 
     Config.init_args(args)
+    Log.init(args, Config.get().find('info', 'stripped_name', None))
     Notify.init(show=args.notification_show)
-    Log.init(args)
 
-    blog.info("Executing backup with %s", args.subcommand)
+    blog.info("Executing sayod-backup (v%s) with %s", __version__, args.subcommand)
     if args.subcommand == "analyse":
         Analyse.standalone(args)
         raise SystemExit(0)

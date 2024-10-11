@@ -14,7 +14,8 @@ sclog = logging.getLogger(__name__)
 
 def make_small_commit(gitobj, addables):
     for pattern in Config.get().find('git', 'add', '').split():
-        path = Path(pattern)
+        path = gitobj.cwd / Path(pattern)
+        sclog.info("Adding files from %s", path)
         addables.extend(path.parent.glob(path.name))
     for curr_file in addables:
         sclog.info("Adding %s", curr_file)

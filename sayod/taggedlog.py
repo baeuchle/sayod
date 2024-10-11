@@ -63,6 +63,12 @@ class TaggedLog:
         self.file_obj.seek(old_position, 0)
         return result
 
+    def find_one(self, **kwargs):
+        f = self.find(**kwargs)
+        if f:
+            return f[0]
+        return None
+
     def append(self, new_entry):
         self.file_obj.seek(0, 2)
         self.file_obj.write(str(new_entry) + "\n")

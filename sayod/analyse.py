@@ -25,8 +25,8 @@ class _Analyse:
         self.text = ""
 
     def find_last_success(self):
-        last_success = self.log_obj.find(subject="SUCCESS", action='last')
-        if last_success is None:
+        last_success = self.log_obj.find_one(subject="SUCCESS", action='last')
+        if not last_success:
             last_success = TaggedEntry(
                 "Es wurde noch nie ein erfolgreiches Backup gemacht",
                 "NEVER"
@@ -41,11 +41,11 @@ class _Analyse:
                 days=self.warn_missing_success,
                 last_success=last_success
             )
-        last_start = self.log_obj.find(subject="START", since=last_success.date, action='last')
-        if last_start is not None:
+        last_start = self.log_obj.find_one(subject="START", since=last_success.date, action='last')
+        if last_start:
             msg += "\n\n"
             msg += Config.get().find("messages", "report_last_started",
-                "Last backup was at {last_start.date:%Y.%m.%d %H:%M}"
+                "Last backup was at {last_start[0].date:%Y.%m.%d %H:%M}"
             ).format(
                 last_start=last_start,
                 diff=(self.now - last_start.date)
@@ -60,13 +60,13 @@ class _Analyse:
         alog.warning(last_success.content)
 
     def find_new_errors(self):
-        last_analysis = self.log_obj.find(subjects=["ANALYSE", "MAIL"], action='last')
-        if last_analysis is None:
-            last_analysis = datetime.datetime.min
+        last_analysis = self.log_obj.find_one(subjects=["ANALYSE", "MAIL"], action='last')
+        if not last_analysis:
+            last_date = datetime.datetime.min
         else:
-            last_analysis = last_analysis.date
+            last_date = last_analysis.date
 
-        for entry in self.log_obj.find(since=last_analysis, action='list'):
+        for entry in self.log_obj.find(since=last_date, action='list'):
             if entry.subject in (
                 'ABORT',
                 'ANALYSE',
