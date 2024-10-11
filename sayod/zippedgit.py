@@ -50,7 +50,7 @@ class _ZippedGit:
 class ZippedGit:
     @classmethod
     def add_subparser(cls, sp):
-        sp.add_parser('zipped-git',
+        return sp.add_parser('zipped-git',
             help='Unpack a zip file and use its contents to replace a git working directory.'
         )
 

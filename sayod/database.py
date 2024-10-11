@@ -74,7 +74,7 @@ class _Database:
 class Database:
     @classmethod
     def add_subparser(cls, sp):
-        _ = sp.add_parser('database',
+        return sp.add_parser('database',
             help="""Dumps a database and make a small commit""")
 
     @classmethod

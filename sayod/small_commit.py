@@ -40,6 +40,7 @@ class SmallCommit:
             required=False,
             default=[]
         )
+        return ap
 
     @classmethod
     def standalone(cls, args):

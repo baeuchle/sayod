@@ -71,6 +71,8 @@ class _Config:
 
 class Config:
     _instance = None
+    print_result = True
+    fail_empty_result = True
 
     @classmethod
     def add_options(cls, ap, **kwargs):
@@ -89,6 +91,7 @@ class Config:
         ap.add_argument('--key', required=True, help='Configuration section key')
         ap.add_argument('--default', required=False, default=None,
                         help='Return this string if no entry found')
+        return ap
 
     @classmethod
     def init_file(cls, path):

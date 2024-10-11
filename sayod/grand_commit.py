@@ -11,7 +11,7 @@ gclog = logging.getLogger(__name__)
 class GrandCommit:
     @classmethod
     def add_subparser(cls, sp):
-        _ = sp.add_parser('grandcommit',
+        return sp.add_parser('grandcommit',
             help="""Creates a grand commit
 
 For a given git repository, this takes all changes since tag "stable" and packs them together into

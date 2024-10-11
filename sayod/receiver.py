@@ -25,7 +25,7 @@ class Receiver:
 
     @classmethod
     def add_subparser(cls, sp):
-        _ = sp.add_parser('receive',
+        return sp.add_parser('receive',
             help='''Reads new log entries from STDIN and adds them to the appropriate log.
             Communication follows text/x-plain-log type''')
 

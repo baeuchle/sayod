@@ -105,6 +105,7 @@ class Squasher:
             be activated at the longest interval that is used for the given repository. If not
             given, the default value depends on --scope: for monthly: True, for weekly and daily:
             False.''')
+        return ap
 
     @classmethod
     def standalone(cls, args):

@@ -48,11 +48,15 @@ def remote(subject, command):
     return results
 
 class RemoteReader:
+    print_result = True
+    fail_empty_result = True
+
     @classmethod
     def add_subparser(cls, sp):
         ap = sp.add_parser('remotereader', help='read data from remote log')
         ap.add_argument('--subject', required=True)
         ap.add_argument('--command', required=True)
+        return ap
 
     @classmethod
     def standalone(cls, args):

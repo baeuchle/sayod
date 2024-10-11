@@ -15,6 +15,7 @@ class ReplaceGit:
                            working directory's content and creates a new commit'''
                           )
         ap.add_argument('--directory', required=False)
+        return ap
 
     @classmethod
     def standalone(cls, args):

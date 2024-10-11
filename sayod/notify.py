@@ -160,6 +160,7 @@ class Notify:
         ap.add_argument('--level', required=True,
             choices='abort deadtime fail fatal start success'.split())
         ap.add_argument('notification_text', nargs='+')
+        return ap
 
     @classmethod
     def init(cls, **kwargs):

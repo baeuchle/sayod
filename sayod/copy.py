@@ -54,6 +54,7 @@ class Copy:
             help="Creates Backups by rsync'ing and notifies about the success of failure thereof."
         )
         Context.add_options(ap)
+        return ap
 
     @classmethod
     def standalone(cls, args):

@@ -39,6 +39,8 @@ def read_log(args):
     return entries
 
 class LogReader:
+    print_result = True
+
     @classmethod
     def add_subparser(cls, sp):
         ap = sp.add_parser('logreader',
@@ -49,6 +51,8 @@ class LogReader:
                         choices='last count first list'.split())
         ap.add_argument('--subject', nargs='+', default=[],
                         help='for which subjects should the action be taken?')
+        return ap
+
     @classmethod
     def standalone(cls, args):
         return '\n'.join(list(str(x) for x in read_log(args)))

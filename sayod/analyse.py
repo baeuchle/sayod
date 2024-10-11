@@ -131,7 +131,7 @@ class _Analyse:
 class Analyse:
     @classmethod
     def add_subparser(cls, sp):
-        sp.add_parser('analyse',
+        return sp.add_parser('analyse',
             help='Analyses log entries and reports via mail')
 
     @classmethod
