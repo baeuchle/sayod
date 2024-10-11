@@ -61,12 +61,13 @@ class _Database:
     def dump_all(self):
         files = []
         Notify.get().start(f'Database dump {self.source} started')
-        sqltables = subprocess.run(self.tblcmd, capture_output=True, env=self.env, check=False)
+        sqltables = subprocess.run(self.tblcmd, capture_output=True,
+                                   env=self.env, check=False, text=True)
         if sqltables.returncode != 0:
             Notify.get().fatal(f"Database table list cannot be read:\n{oneline(sqltables.stderr)}")
             raise SystemExit(1)
-        for table_bytes in sqltables.stdout.split():
-            target = self.dump(table_bytes.decode('utf-8'))
+        for table_str in sqltables.stdout.split():
+            target = self.dump(table_str)
             files.append(target)
         return files
 
