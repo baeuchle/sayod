@@ -35,9 +35,14 @@ class _Database:
         if self.type == 'mysql':
             self.env['MYSQL_PWD'] = kwargs.get('password', '')
             username = kwargs.get('username', '')
-            self.tblcmd = ['mysql', '--user='+username, self.source, '-BNe', 'show tables']
-            self.dumpcmd = ['mysqldump', '--user='+username, '--skip-extended-insert',
+            hostname = kwargs.get('host', 'localhost')
+            userarg = '--user='+username
+            hostarg = '--host='+hostname
+            self.tblcmd = ['mysql', userarg, hostarg, self.source, '-BNe', 'show tables']
+            self.dumpcmd = ['mysqldump', userarg, hostarg, '--skip-extended-insert',
                 '--skip-dump-date', self.source, '{}']
+        dblog.info("Table command: '%s'", "' '".join(self.tblcmd))
+        dblog.info("Dump  command: '%s'", "' '".join(self.dumpcmd))
 
     def dump(self, table_name):
         dblog.info("Dumping table %s", table_name)
@@ -77,6 +82,7 @@ class Database:
         d.prepare_dumps(
             password=Config.get().find('database', 'password', ''),
             username=Config.get().find('database', 'user', Config.get().find('env', 'LOGNAME', ''))
+            hostname=Config.get().find('database', 'host', 'localhost')
         )
         file_list = d.dump_all()
 
