@@ -32,7 +32,7 @@ class _Notify:
         self.ssh = {
             'host': Config.get().find('notify', 'host', 'localhost'),
             'user': Config.get().find('notify', 'user', self.env['LOGNAME']),
-            'port': Config.get().find('notify', 'port', 22),
+            'port': Config.get().find('notify', 'port', "22"),
             'pipe': Config.get().find('notify', 'pipe', False),
             'remote': Config.get().find('notify', 'remotekey',
                 Config.get().find('info', 'stripped_name',
