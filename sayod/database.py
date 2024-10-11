@@ -35,7 +35,7 @@ class _Database:
         if self.type == 'mysql':
             self.env['MYSQL_PWD'] = kwargs.get('password', '')
             username = kwargs.get('username', '')
-            hostname = kwargs.get('host', 'localhost')
+            hostname = kwargs.get('hostname', 'localhost')
             userarg = '--user='+username
             hostarg = '--host='+hostname
             self.tblcmd = ['mysql', userarg, hostarg, self.source, '-BNe', 'show tables']
@@ -81,7 +81,7 @@ class Database:
         d = _Database()
         d.prepare_dumps(
             password=Config.get().find('database', 'password', ''),
-            username=Config.get().find('database', 'user', Config.get().find('env', 'LOGNAME', ''))
+            username=Config.get().find('database', 'user', Config.get().find('env', 'LOGNAME', '')),
             hostname=Config.get().find('database', 'host', 'localhost')
         )
         file_list = d.dump_all()
