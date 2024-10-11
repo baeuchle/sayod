@@ -14,7 +14,7 @@ dynamic = ["version"]
 # really, 3.9 because argparse.BooleanOptionalAction
 requires-python = ">= 3.8"
 dependencies = [
-  "gnupg",
+  "python-gnupg",
   "systemd-python",
   "regex"
 ]
