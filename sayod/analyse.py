@@ -2,10 +2,10 @@ import datetime
 import logging
 
 from .config import Config
-from .gitversion import Git
 from .mailer import Mailer
 from .taggedentry import TaggedEntry
 from .taggedlog import TaggedLog
+from .version import __version__
 
 alog = logging.getLogger(__name__)
 
@@ -118,7 +118,7 @@ class _Analyse:
         self.text += Config.get().find("messages", "version",
             "Created by version {version}"
         ).format(
-            version=Git().describe()
+            version=__version__
         )
         self.text = self.text.strip()
 
