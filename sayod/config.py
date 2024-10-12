@@ -94,17 +94,13 @@ class Config:
         return ap
 
     @classmethod
-    def init_file(cls, path):
-        cls._instance = _Config(path)
-
-    @classmethod
-    def init_args(cls, args):
-        cls.init_file(args.configuration_file)
+    def init(cls, **kwargs):
+        cls._instance = _Config(kwargs.get('configuration_file', ''))
 
     @classmethod
     def get(cls):
         return cls._instance
 
     @classmethod
-    def standalone(cls, args):
-        return cls.get().find(args.section, args.key, args.default)
+    def standalone(cls, **kwargs):
+        return cls.get().find(kwargs['section'], kwargs['key'], kwargs['default'])

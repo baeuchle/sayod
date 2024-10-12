@@ -26,7 +26,7 @@ def find_sources():
     return list(sls.values())
 
 def do_copy(**kwargs):
-    if not Context.test_deadtime(kwargs.get('force', False)):
+    if not Context.test_deadtime(**kwargs):
         raise SystemExit(0)
     Notify.get().start("Starte Backup")
     sources = find_sources()
@@ -57,5 +57,5 @@ class Copy:
         return ap
 
     @classmethod
-    def standalone(cls, args):
-        do_copy(force=args.context_force)
+    def standalone(cls, **kwargs):
+        do_copy(**kwargs)

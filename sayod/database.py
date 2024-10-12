@@ -78,7 +78,7 @@ class Database:
             help="""Dumps a database and make a small commit""")
 
     @classmethod
-    def standalone(cls, _):
+    def standalone(cls, **_):
         d = _Database()
         d.prepare_dumps(
             password=Config.get().find('database', 'password', ''),
@@ -89,7 +89,7 @@ class Database:
 
         if not Config.get().find('git', 'commit', False):
             Notify.get().success("Database dump complete without source control")
-            raise SystemExit(0)
+            return
 
         git = Git(Config.get().find('git', 'directory', d.dumpdir))
         make_small_commit(git, addables=file_list)

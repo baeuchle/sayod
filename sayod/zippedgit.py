@@ -55,7 +55,8 @@ class ZippedGit:
         )
 
     @classmethod
-    def standalone(cls, _):
+    def standalone(cls, **_):
         gitdir = Path(Config.get().find('repository', 'path', '.'))
         zg = _ZippedGit(gitdir)
         zg.run()
+        return zg.git.hash()

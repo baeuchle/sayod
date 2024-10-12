@@ -23,7 +23,7 @@ long-term backup, provided by grand commit.
 The grand commit is also mirrored.""")
 
     @classmethod
-    def standalone(cls, _):
+    def standalone(cls, **_):
         git = Git(Config.get().find('git', 'directory', Path.cwd()))
 
         tagname = Config.get().find('git', 'tagname', 'stable')
@@ -46,3 +46,4 @@ The grand commit is also mirrored.""")
             git.command('push', '-q', orig, Config.get().find('git', 'branch', 'main'))
 
         Notify.get().success("Current commit is", git.hash())
+        return git.hash()

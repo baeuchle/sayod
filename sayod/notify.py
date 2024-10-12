@@ -17,7 +17,7 @@ def oneline(text):
 
 class _Notify:
     def __init__(self, **kwargs):
-        self.show = kwargs.get('show', False)
+        self.show = kwargs.get('notification_show', False)
         self.friendly = Config.get().find('info', 'friendly_name',
                              Config.get().find('info', 'stripped_name',
                                 'UNKNOWN'))
@@ -171,5 +171,5 @@ class Notify:
         return cls._instance
 
     @classmethod
-    def standalone(cls, args):
-        getattr(cls._instance, args.level)(*args.notification_text)
+    def standalone(cls, **kwargs):
+        getattr(cls._instance, kwargs.get('level', 'start'))(*kwargs.get('notification_text'))

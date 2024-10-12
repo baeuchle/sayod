@@ -66,5 +66,5 @@ class RemoteReader:
         return ap
 
     @classmethod
-    def standalone(cls, args):
-        return remote(args.subject, args.action)
+    def standalone(cls, **kwargs):
+        return remote(kwargs.get('subject', []), kwargs.get('action', 'list'))

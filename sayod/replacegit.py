@@ -18,9 +18,10 @@ class ReplaceGit:
         return ap
 
     @classmethod
-    def standalone(cls, args):
-        git = Git(Config.get().find('target', 'path', args.directory))
-        rglog.debug('running in %s', args.directory)
+    def standalone(cls, **kwargs):
+        git = Git(Config.get().find('target', 'path', kwargs.get('directory', '')))
+        rglog.debug('running in %s', git.cwd)
         git.command('add', '.')
         git.command('commit', '-m', f'BACKUP {datetime.datetime.now()}')
         Notify.get().success("New commit created")
+        return git.hash()

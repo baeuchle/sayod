@@ -145,7 +145,7 @@ class Analyse:
             help='Analyses log entries and reports via mail')
 
     @classmethod
-    def standalone(cls, _):
+    def standalone(cls, **_):
         a = _Analyse()
         a.find_last_success()
         a.find_new_errors()

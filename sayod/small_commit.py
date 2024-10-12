@@ -43,6 +43,7 @@ class SmallCommit:
         return ap
 
     @classmethod
-    def standalone(cls, args):
+    def standalone(cls, **kwargs):
         git = Git(Config.get().find('git', 'directory', Path.cwd()))
-        make_small_commit(git, args.add)
+        make_small_commit(git, kwargs.get('add', []))
+        return git.hash()

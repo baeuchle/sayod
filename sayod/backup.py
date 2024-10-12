@@ -33,14 +33,14 @@ def _backup():
     subparsers = [klass.add_subparser(sp) for klass in klasses]
     args = parser.parse_args()
 
-    Config.init_args(args)
-    Log.init(args, Config.get().find('info', 'stripped_name', None))
-    Notify.init(show=args.notification_show)
+    Config.init(**args.__dict__)
+    Log.init(**args.__dict__, name=Config.get().find('info', 'stripped_name', None))
+    Notify.init(**args.__dict__)
 
     blog.info("Executing sayod-backup (v%s) with %s", __version__, args.subcommand)
     for klass, subp in zip(klasses, subparsers):
         if f'{parser.prog} {args.subcommand}' == subp.prog:
-            result = klass.standalone(args)
+            result = klass.standalone(**args.__dict__)
             if getattr(klass, 'print_result', False) and result:
                 if isinstance(result, list):
                     result = '\n'.join([str(x) for x in result])

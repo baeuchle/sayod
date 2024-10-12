@@ -32,7 +32,7 @@ class Receiver:
             Communication follows text/x-plain-log type''')
 
     @classmethod
-    def standalone(cls, _):
+    def standalone(cls, **_):
         if cls._instance is None:
             cls._instance = _Receiver('text/x-plain-log')
         cls._instance.run()
@@ -46,8 +46,8 @@ class Receiver:
             rlog.debug("received %s", line)
             line = sys.stdin.readline().strip()
         rlog.debug("received %s", line)
-        Log.init(None, "receiver " + line.strip())
-        Config.init_file(line)
+        Log.init(name="receiver " + line.strip())
+        Config.init(configuration_file=line)
         cls._instance = _Receiver(content_type)
 
 # entry point for 'receiver' command as created by installing the wheel
@@ -56,7 +56,7 @@ def receiver():
         Log.init_root()
         rlog.info("Executing receiver (v%s)", __version__)
         Receiver.init_from_stdin()
-        Receiver.standalone(None)
+        Receiver.standalone()
         rlog.debug("receiver end")
     except Exception:
         rlog.exception("Program failed hard")
