@@ -30,9 +30,12 @@ class Log:
         root_log.addHandler(jh)
 
     @classmethod
-    def init(cls, args, name=None):
+    def init(cls, args=None, name=None):
         sh = logging.StreamHandler()
-        sh.setLevel(args.log_level)
+        if args is None:
+            sh.setLevel(logging.WARNING)
+        else:
+            sh.setLevel(args.log_level)
         root_log.addHandler(sh)
         if name is None:
             return
