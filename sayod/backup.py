@@ -42,6 +42,8 @@ def _backup():
         if f'{parser.prog} {args.subcommand}' == subp.prog:
             result = klass.standalone(args)
             if getattr(klass, 'print_result', False) and result:
+                if isinstance(result, list):
+                    result = '\n'.join([str(x) for x in result])
                 blog.info("Result: %s", result)
                 print(result)
             if getattr(klass, 'fail_empty_result', False) and not result:
