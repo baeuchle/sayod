@@ -3,7 +3,9 @@ import sys
 
 from .config import Config
 from .log import Log
-from .taggedlog import TaggedLog, FromStream
+from .taggedentry import FromStream
+from .taggedlog import TaggedLog
+from .version import __version__
 
 rlog = logging.getLogger(__name__)
 
@@ -41,12 +43,20 @@ class Receiver:
         content_type = "text/x-plain-log"
         if line.startswith("content-type: "):
             content_type = line[len("content-type: "):]
+            rlog.debug("received %s", line)
             line = sys.stdin.readline().strip()
+        rlog.debug("received %s", line)
+        Log.init(None, "receiver " + line.strip())
         Config.init_file(line)
         cls._instance = _Receiver(content_type)
 
 # entry point for 'receiver' command as created by installing the wheel
 def receiver():
-    Log.init_root()
-    Receiver.init_from_stdin()
-    Receiver.standalone(None)
+    try:
+        Log.init_root()
+        rlog.info("Executing receiver (v%s)", __version__)
+        Receiver.init_from_stdin()
+        Receiver.standalone(None)
+        rlog.debug("receiver end")
+    except Exception:
+        rlog.exception("Program failed hard")

@@ -1,22 +1,19 @@
-#!/usr/bin/python3
-
 """Reads request for log find task from STDIN and prints the lines that
 were found"""
 
-import datetime
 import logging
 from subprocess import Popen, PIPE
 
 from .notify import Notify, oneline
+from .plain_log import PlainLog
+from .taggedentry import TaggedEntry
 
 lrlog = logging.getLogger(__name__)
 
-LAST = "last"
-
-def remote(subject, command):
+def remote(subjects, action):
     results = []
     ssh = Notify.get().ssh
-    lrlog.info("Connecting to ssh -> logreader")
+    lrlog.info("Connecting to ssh -> logreader for %s on %s", action, subjects)
     with Popen(['ssh',
                 '-l', ssh['user'],
                       ssh['host'],
@@ -28,9 +25,16 @@ def remote(subject, command):
             stdout=PIPE,
             stderr=PIPE) as proc:
         proc.stdin.write('content-type: text/x-plain-ask\n')
+        # first, choose the configuration file:
         proc.stdin.write(ssh['remote'] + "\n")
-        proc.stdin.write(subject + "\n\n")
-        proc.stdin.write(command)
+        # then, tell the remote which part of the log to look at
+        # (DEADTIME etc.):
+        for s in subjects:
+            proc.stdin.write(s + "\n")
+        proc.stdin.write("\n")
+        # finally, what about this subject do we want to know?
+        # count/last/first/list
+        proc.stdin.write(action)
         proc.stdin.close()
         returncode = proc.wait()
         err = proc.stderr.read()
@@ -39,12 +43,16 @@ def remote(subject, command):
                 head='Backup-Fehler {}')
             return 0
         for line in proc.stdout.readlines():
-            results.append(line.split()[0])
-    try:
-        if command == LAST:
-            return datetime.datetime.fromisoformat(results[-1])
-    except ValueError:
-        pass
+            if line.strip():
+                results.append(TaggedEntry(line))
+    if not results:
+        raise ValueError("No results received")
+    if action == PlainLog.FIRST:
+        return results[0]
+    if action == PlainLog.LAST:
+        return results[-1]
+    if action == PlainLog.COUNT:
+        return len(results)
     return results
 
 class RemoteReader:
@@ -54,10 +62,9 @@ class RemoteReader:
     @classmethod
     def add_subparser(cls, sp):
         ap = sp.add_parser('remotereader', help='read data from remote log')
-        ap.add_argument('--subject', required=True)
-        ap.add_argument('--command', required=True)
+        PlainLog.add_options(ap)
         return ap
 
     @classmethod
     def standalone(cls, args):
-        return remote(args.subject, args.command)
+        return remote(args.subject, args.action)

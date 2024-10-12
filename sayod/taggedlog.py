@@ -72,18 +72,3 @@ class TaggedLog:
     def append(self, new_entry):
         self.file_obj.seek(0, 2)
         self.file_obj.write(str(new_entry) + "\n")
-
-def _FromPlainLog(stream):
-    result = TaggedEntry("")
-    for line in stream:
-        if line.strip() == "":
-            continue
-        result.subject = line.strip()
-        break
-    result.content = stream.read().strip()
-    return result
-
-def FromStream(stream, content_type='text/x-plain-log'):
-    if content_type == "text/x-plain-log":
-        return _FromPlainLog(stream)
-    raise AttributeError("Cannot read data of type " + content_type)
