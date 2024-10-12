@@ -41,7 +41,7 @@ def remote(subjects, action):
         if returncode != 0:
             Notify.get().notify_local(f"Kann entferntes Log nicht lesen:\n{oneline(err)}",
                 head='Backup-Fehler {}')
-            return 0
+            raise RuntimeError(err)
         for line in proc.stdout.readlines():
             if line.strip():
                 results.append(TaggedEntry(line))
