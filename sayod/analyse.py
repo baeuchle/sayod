@@ -18,7 +18,7 @@ class _Analyse:
         }
         self.content_headlines = {cat: Config.get().find('category_headlines', cat, cat)
                                     for cat in self.error_log }
-        self.log_obj = TaggedLog(Config.get().find('status', 'file', ''), 'a+')
+        self.log_obj = TaggedLog(Config.get().find('status', 'file', ''), 'r')
         self.warn_missing_success = Config.get().find("status", "warn_missing", 9)
         self.now = datetime.datetime.now()
         self.warn_missing_since = self.now - datetime.timedelta(days=int(self.warn_missing_success))
@@ -123,10 +123,20 @@ class _Analyse:
         self.text = self.text.strip()
 
     def send_mail(self):
+        can_log = True
+        try:
+            write_log = TaggedLog(self.log_obj.log_file, 'a+')
+        except PermissionError as pe:
+            alog.error("Cannot append to log file: %s", pe)
+            self.text += "\n\nThe fact that this mail has been written could not be stored."
+            can_log = False
+
         m = Mailer(self.text)
         m.sign(Config.get().find('mail', 'sign', None))
         entry = m.send()
-        self.log_obj.append(entry)
+
+        if can_log:
+            write_log.append(entry)
 
 class Analyse:
     @classmethod
