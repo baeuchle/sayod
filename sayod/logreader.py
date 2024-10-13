@@ -62,6 +62,7 @@ def logreader():
     content_type = "text/x-plain-ask"
     if line.startswith("content-type: "):
         content_type = line[len("content-type: "):]
+        lrlog.debug("received %s", line)
         line = sys.stdin.readline().strip()
     Config.init(configuration_file=line)
 
