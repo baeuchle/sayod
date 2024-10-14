@@ -71,6 +71,8 @@ class _Config:
 
 class Config:
     _instance = None
+    print_result = True
+    fail_empty_result = True
 
     @classmethod
     def add_options(cls, ap, **kwargs):
@@ -89,19 +91,16 @@ class Config:
         ap.add_argument('--key', required=True, help='Configuration section key')
         ap.add_argument('--default', required=False, default=None,
                         help='Return this string if no entry found')
+        return ap
 
     @classmethod
-    def init_file(cls, path):
-        cls._instance = _Config(path)
-
-    @classmethod
-    def init_args(cls, args):
-        cls.init_file(args.configuration_file)
+    def init(cls, **kwargs):
+        cls._instance = _Config(kwargs.get('configuration_file', ''))
 
     @classmethod
     def get(cls):
         return cls._instance
 
     @classmethod
-    def standalone(cls, args):
-        return cls.get().find(args.section, args.key, args.default)
+    def standalone(cls, **kwargs):
+        return cls.get().find(kwargs['section'], kwargs['key'], kwargs['default'])

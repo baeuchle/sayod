@@ -11,7 +11,7 @@ gclog = logging.getLogger(__name__)
 class GrandCommit:
     @classmethod
     def add_subparser(cls, sp):
-        _ = sp.add_parser('grandcommit',
+        return sp.add_parser('grandcommit',
             help="""Creates a grand commit
 
 For a given git repository, this takes all changes since tag "stable" and packs them together into
@@ -23,7 +23,7 @@ long-term backup, provided by grand commit.
 The grand commit is also mirrored.""")
 
     @classmethod
-    def standalone(cls, _):
+    def standalone(cls, **_):
         git = Git(Config.get().find('git', 'directory', Path.cwd()))
 
         tagname = Config.get().find('git', 'tagname', 'stable')
@@ -46,3 +46,4 @@ The grand commit is also mirrored.""")
             git.command('push', '-q', orig, Config.get().find('git', 'branch', 'main'))
 
         Notify.get().success("Current commit is", git.hash())
+        return git.hash()

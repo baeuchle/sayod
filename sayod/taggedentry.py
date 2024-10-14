@@ -5,6 +5,8 @@ class TaggedEntry:
     timeformat = '%Y-%m-%dT%H:%M:%S'
 
     def __init__(self, content, subject=None, date=None):
+        """subject is the "tag", e.g., DEADTIME or SUCCESS"""
+
         # sensible default in many branches:
         self.date = datetime.datetime.now()
         self.content = ""
@@ -62,3 +64,18 @@ class TaggedEntry:
             result += wrapper.fill(paragraph.replace('\\n', ' '))
             result += "\n\n"
         return result
+
+def _FromPlainLog(stream):
+    result = TaggedEntry("")
+    for line in stream:
+        if line.strip() == "":
+            continue
+        result.subject = line.strip()
+        break
+    result.content = stream.read().strip()
+    return result
+
+def FromStream(stream, content_type='text/x-plain-log'):
+    if content_type == "text/x-plain-log":
+        return _FromPlainLog(stream)
+    raise AttributeError("Cannot read data of type " + content_type)

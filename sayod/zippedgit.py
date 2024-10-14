@@ -50,12 +50,13 @@ class _ZippedGit:
 class ZippedGit:
     @classmethod
     def add_subparser(cls, sp):
-        sp.add_parser('zipped-git',
+        return sp.add_parser('zipped-git',
             help='Unpack a zip file and use its contents to replace a git working directory.'
         )
 
     @classmethod
-    def standalone(cls, _):
+    def standalone(cls, **_):
         gitdir = Path(Config.get().find('repository', 'path', '.'))
         zg = _ZippedGit(gitdir)
         zg.run()
+        return zg.git.hash()

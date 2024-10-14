@@ -19,7 +19,7 @@ from .version import __version__
 
 blog = logging.getLogger('sayod.exe')
 
-def backup():
+def _backup():
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     Log.add_options(parser)
@@ -28,70 +28,33 @@ def backup():
     sp = parser.add_subparsers(help="""This program gives an easy entry point to all backup scripts.
     Choose which one you want to use.""",
                                dest="subcommand")
-    Analyse.add_subparser(sp)
-    Copy.add_subparser(sp)
-    Config.add_subparser(sp)
-    Database.add_subparser(sp)
-    GrandCommit.add_subparser(sp)
-    Notify.add_subparser(sp)
-    LogReader.add_subparser(sp)
-    Receiver.add_subparser(sp)
-    RemoteReader.add_subparser(sp)
-    ReplaceGit.add_subparser(sp)
-    SmallCommit.add_subparser(sp)
-    Squasher.add_subparser(sp)
-    ZippedGit.add_subparser(sp)
+    klasses = (Analyse, Copy, Config, Database, GrandCommit, Notify, LogReader, Receiver,
+               RemoteReader, ReplaceGit, SmallCommit, Squasher, ZippedGit)
+    subparsers = [klass.add_subparser(sp) for klass in klasses]
     args = parser.parse_args()
 
-    Config.init_args(args)
-    Log.init(args, Config.get().find('info', 'stripped_name', None))
-    Notify.init(show=args.notification_show)
+    Config.init(**args.__dict__)
+    Log.init(**args.__dict__, name=Config.get().find('info', 'stripped_name', None))
+    Notify.init(**args.__dict__)
 
     blog.info("Executing sayod-backup (v%s) with %s", __version__, args.subcommand)
-    if args.subcommand == "analyse":
-        Analyse.standalone(args)
-        raise SystemExit(0)
-    if args.subcommand == "copy":
-        Copy.standalone(args)
-        raise SystemExit(0)
-    if args.subcommand == "config":
-        data = Config.standalone(args)
-        if data is not None:
-            print(data)
+    for klass, subp in zip(klasses, subparsers):
+        if f'{parser.prog} {args.subcommand}' == subp.prog:
+            result = klass.standalone(**args.__dict__)
+            if getattr(klass, 'print_result', False) and result:
+                if isinstance(result, list):
+                    result = '\n'.join([str(x) for x in result])
+                blog.info("Result: %s", result)
+                print(result)
+            if getattr(klass, 'fail_empty_result', False) and not result:
+                blog.error("Program failed; no output")
+                raise SystemExit(1)
+            blog.info("Program succeeded")
             raise SystemExit(0)
-        raise SystemExit(1)
-    if args.subcommand == "database":
-        Database.standalone(args)
-        raise SystemExit(0)
-    if args.subcommand == "grandcommit":
-        GrandCommit.standalone(args)
-        raise SystemExit(0)
-    if args.subcommand == "notify":
-        Notify.standalone(args)
-        raise SystemExit(0)
-    if args.subcommand == "logreader":
-        data = LogReader.standalone(args)
-        print(data)
-        raise SystemExit(0)
-    if args.subcommand == "receive":
-        Receiver.standalone(args)
-        raise SystemExit(0)
-    if args.subcommand == "remotereader":
-        data = RemoteReader.standalone(args)
-        if data is not None:
-            print(data)
-            raise SystemExit(0)
-        raise SystemExit(1)
-    if args.subcommand == "replace-git":
-        ReplaceGit.standalone(args)
-        raise SystemExit(0)
-    if args.subcommand == "smallcommit":
-        SmallCommit.standalone(args)
-        raise SystemExit(0)
-    if args.subcommand == "squasher":
-        Squasher.standalone(args)
-        raise SystemExit(0)
-    if args.subcommand == "zipped-git":
-        ZippedGit.standalone(args)
-        raise SystemExit(0)
-    print(args)
+    blog.error("Unkown subcommand in %s", str(args))
+
+def backup():
+    try:
+        _backup()
+    except Exception:
+        blog.exception("Program failed hard")

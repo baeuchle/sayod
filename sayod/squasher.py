@@ -8,9 +8,9 @@ from .scope import Scope
 slog = logging.getLogger(__name__)
 
 class _Squasher:
-    def __init__(self, args):
+    def __init__(self, **kwargs):
         self.git = Git(Config.get().find('target', 'path', None), stderr=STDOUT)
-        self.sc = Scope(args.scope, args.keep_previous)
+        self.sc = Scope(**kwargs.get('scope', ''), **kwargs.get('keep_previous', ''))
         self.squashables = set()
 
     def handle(self):
@@ -105,8 +105,10 @@ class Squasher:
             be activated at the longest interval that is used for the given repository. If not
             given, the default value depends on --scope: for monthly: True, for weekly and daily:
             False.''')
+        return ap
 
     @classmethod
-    def standalone(cls, args):
-        sq = _Squasher(args)
+    def standalone(cls, **kwargs):
+        sq = _Squasher(**kwargs)
         sq.handle()
+        return sq.git.hash()

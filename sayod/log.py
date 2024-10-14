@@ -30,10 +30,11 @@ class Log:
         root_log.addHandler(jh)
 
     @classmethod
-    def init(cls, args, name=None):
+    def init(cls, **kwargs):
         sh = logging.StreamHandler()
-        sh.setLevel(args.log_level)
+        sh.setLevel(kwargs.get('log_level', logging.WARNING))
         root_log.addHandler(sh)
+        name = kwargs.get('name', None)
         if name is None:
             return
         jf = logging.Formatter(f"%(name)s [{name}]: %(message)s")

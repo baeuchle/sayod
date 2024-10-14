@@ -1,5 +1,7 @@
 try:
     from ._version import __version__, __version_tuple__
 except ImportError:
-    __version__ = "0.0.0.0"
-    __version_tuple__ = (0, 0, 0, 0)
+    from .gitversion import Git
+    _g = Git()
+    __version__ = _g.describe()
+    __version_tuple__ = __version__.split('.')

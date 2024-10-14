@@ -4,8 +4,9 @@ import logging
 
 from .config import Config
 from .notify import Notify
+from .plain_log import PlainLog
 from .provider import ProviderFactory, ProvideError
-from .remotereader import remote, LAST
+from .remotereader import remote
 
 clog = logging.getLogger(__name__)
 
@@ -20,17 +21,17 @@ class Context:
                             dest="context_force")
 
     @classmethod
-    def test_deadtime(cls, force):
+    def test_deadtime(cls, **kwargs):
         deadtime = int(Config.get().find('rsync', 'deadtime', 0))
         if deadtime <= 0:
             clog.debug("No deadtime given, going ahead")
             return True
-        last_success = remote('SUCCESS', LAST)
+        last_success = remote('SUCCESS', PlainLog.LAST).date
         tage = (datetime.datetime.today() - last_success).days
         if tage > deadtime:
             clog.info("Deadtime is over")
             return True
-        if not force:
+        if not kwargs.get('context_force', False):
             Notify.get().deadtime(
                     f"Letztes erfolgreiches Backup war vor weniger als {deadtime} Tagen")
             return False
