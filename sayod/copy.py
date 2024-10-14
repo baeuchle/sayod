@@ -48,9 +48,11 @@ def do_copy(**kwargs):
     rsync.wrapup()
 
 class Copy:
+    prog = 'copy'
+
     @classmethod
     def add_subparser(cls, sp):
-        ap = sp.add_parser('copy',
+        ap = sp.add_parser(cls.prog,
             help="Creates Backups by rsync'ing and notifies about the success of failure thereof."
         )
         Context.add_options(ap)

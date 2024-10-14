@@ -56,12 +56,13 @@ def remote(subjects, action):
     return results
 
 class RemoteReader:
+    prog = 'remotereader'
     print_result = True
     fail_empty_result = True
 
     @classmethod
     def add_subparser(cls, sp):
-        ap = sp.add_parser('remotereader', help='read data from remote log')
+        ap = sp.add_parser(cls.prog, help='read data from remote log')
         PlainLog.add_options(ap)
         return ap
 

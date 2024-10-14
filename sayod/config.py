@@ -71,6 +71,7 @@ class _Config:
 
 class Config:
     _instance = None
+    prog = 'config'
     print_result = True
     fail_empty_result = True
 
@@ -86,7 +87,7 @@ class Config:
 
     @classmethod
     def add_subparser(cls, sp):
-        ap = sp.add_parser('config', help='directly read values from configuration')
+        ap = sp.add_parser(cls.prog, help='directly read values from configuration')
         ap.add_argument('--section', required=True, help='Configuration file section')
         ap.add_argument('--key', required=True, help='Configuration section key')
         ap.add_argument('--default', required=False, default=None,

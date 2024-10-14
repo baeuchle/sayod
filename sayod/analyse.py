@@ -139,9 +139,11 @@ class _Analyse:
             write_log.append(entry)
 
 class Analyse:
+    prog = 'analyse'
+
     @classmethod
     def add_subparser(cls, sp):
-        return sp.add_parser('analyse',
+        return sp.add_parser(cls.prog,
             help='Analyses log entries and reports via mail')
 
     @classmethod

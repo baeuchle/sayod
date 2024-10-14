@@ -48,9 +48,11 @@ class _ZippedGit:
         self.git.command('commit', '-m', f"BACKUP {zipdata:%Y-%m-%d}\n\nfrom file {file.stem}")
 
 class ZippedGit:
+    prog = 'zipped-git'
+
     @classmethod
     def add_subparser(cls, sp):
-        return sp.add_parser('zipped-git',
+        return sp.add_parser(cls.prog,
             help='Unpack a zip file and use its contents to replace a git working directory.'
         )
 

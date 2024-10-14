@@ -32,9 +32,11 @@ def make_small_commit(gitobj, addables):
     Notify.get().success("Current commit is", gitobj.hash())
 
 class SmallCommit:
+    prog = 'smallcommit'
+
     @classmethod
     def add_subparser(cls, sp):
-        ap = sp.add_parser('smallcommit', help="""Creates a small commit""")
+        ap = sp.add_parser(cls.prog, help="""Creates a small commit""")
         ap.add_argument('--add', '-a',
             action='append',
             required=False,
