@@ -43,7 +43,7 @@ def do_copy(**kwargs):
     clog.info("Target %s", target)
 
     rsync = RSync()
-    with Context(Config.get().find('rsync', 'providers', '').split()) as _:
+    with Context() as _:
         rsync.run(sources=sources, target=target)
     rsync.wrapup()
 
