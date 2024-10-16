@@ -1,7 +1,6 @@
 import logging
 
 from .config import Config
-from .context import Context
 from .notify import Notify
 from .rsync import RSync
 
@@ -26,8 +25,6 @@ def find_sources():
     return list(sls.values())
 
 def do_copy(**kwargs):
-    if not Context.test_deadtime(**kwargs):
-        raise SystemExit(0)
     Notify.get().start("Starte Backup")
     sources = find_sources()
     target = Config.get().find('target', 'path', None)
@@ -43,8 +40,7 @@ def do_copy(**kwargs):
     clog.info("Target %s", target)
 
     rsync = RSync()
-    with Context() as _:
-        rsync.run(sources=sources, target=target)
+    rsync.run(sources=sources, target=target)
     rsync.wrapup()
 
 class Copy:
@@ -52,11 +48,9 @@ class Copy:
 
     @classmethod
     def add_subparser(cls, sp):
-        ap = sp.add_parser(cls.prog,
+        return sp.add_parser(cls.prog,
             help="Creates Backups by rsync'ing and notifies about the success of failure thereof."
         )
-        Context.add_options(ap)
-        return ap
 
     @classmethod
     def standalone(cls, **kwargs):

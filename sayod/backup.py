@@ -4,6 +4,7 @@ import logging
 from .analyse import Analyse
 from .copy import Copy
 from .config import Config
+from .context import Context
 from .database import Database
 from .grand_commit import GrandCommit
 from .log import Log
@@ -22,7 +23,7 @@ blog = logging.getLogger('sayod.exe')
 _klasses = (Analyse, Copy, Config, Database, GrandCommit, Notify, LogReader, Receiver,
                RemoteReader, ReplaceGit, SmallCommit, Squasher, ZippedGit)
 
-def _exec(**kwargs):
+def _exec(klass, **kwargs):
     result = klass.standalone(**kwargs)
     if getattr(klass, 'print_result', False) and result:
         if isinstance(result, list):
@@ -36,10 +37,13 @@ def _exec(**kwargs):
     return True
 
 def _find_exec(command, **kwargs):
-    for klass in _klasses:
-        if command == klass.prog:
-            return _exec(**kwargs)
-    raise ValueError("Unknown subcommand")
+    if not Context.test_deadtime(**kwargs):
+        return True
+    with Context() as _:
+        for klass in _klasses:
+            if command == klass.prog:
+                return _exec(**kwargs)
+        raise ValueError("Unknown subcommand")
 
 def _backup():
     parser = argparse.ArgumentParser()
@@ -47,6 +51,7 @@ def _backup():
     Log.add_options(parser)
     Config.add_options(parser)
     Notify.add_options(parser)
+    Context.add_options(parser)
     sp = parser.add_subparsers(help="""This program gives an easy entry point to all backup scripts.
     Choose which one you want to use.""",
                                dest="subcommand")
