@@ -9,9 +9,11 @@ from .notify import Notify
 gclog = logging.getLogger(__name__)
 
 class GrandCommit:
+    prog = 'grandcommit'
+
     @classmethod
     def add_subparser(cls, sp):
-        return sp.add_parser('grandcommit',
+        return sp.add_parser(cls.prog,
             help="""Creates a grand commit
 
 For a given git repository, this takes all changes since tag "stable" and packs them together into

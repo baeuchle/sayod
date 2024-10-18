@@ -143,6 +143,7 @@ class _Notify:
 
 class Notify:
     _instance = None
+    prog = 'notify'
 
     @classmethod
     def add_options(cls, ap):
@@ -156,7 +157,7 @@ class Notify:
 
     @classmethod
     def add_subparser(cls, sp):
-        ap = sp.add_parser('notify', help='Write Notifications to libnotify and remote server')
+        ap = sp.add_parser(cls.prog, help='Write Notifications to libnotify and remote server')
         ap.add_argument('--level', required=True,
             choices='abort deadtime fail fatal start success'.split())
         ap.add_argument('notification_text', nargs='+')

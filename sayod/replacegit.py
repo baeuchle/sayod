@@ -8,9 +8,11 @@ from .notify import Notify
 rglog = logging.getLogger(__name__)
 
 class ReplaceGit:
+    prog = 'replace-git'
+
     @classmethod
     def add_subparser(cls, sp):
-        ap = sp.add_parser('replace-git',
+        ap = sp.add_parser(cls.prog,
                            help='''Replaces all files inside a git repository with the current
                            working directory's content and creates a new commit'''
                           )

@@ -38,7 +38,7 @@ classifiers = [
 ]
 
 [project.scripts]
-sayod-backup = "sayod:backup"
+sayod-backup = "sayod.main:run"
 logreader = "sayod:logreader"
 receiver = "sayod:receiver"
 

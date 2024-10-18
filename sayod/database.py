@@ -72,9 +72,11 @@ class _Database:
         return files
 
 class Database:
+    prog = 'database'
+
     @classmethod
     def add_subparser(cls, sp):
-        return sp.add_parser('database',
+        return sp.add_parser(cls.prog,
             help="""Dumps a database and make a small commit""")
 
     @classmethod

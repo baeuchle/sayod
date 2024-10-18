@@ -88,9 +88,11 @@ class _Squasher:
 
 
 class Squasher:
+    prog = 'squasher'
+
     @classmethod
     def add_subparser(cls, sp):
-        ap = sp.add_parser('squasher', help='''Squashes backups inside a git repository so that
+        ap = sp.add_parser(cls.prog, help='''Squashes backups inside a git repository so that
             different backup ages remain. The idea is to regularly make a backup, commit everything
             to git. (This needs to be done independent of this program.) Then, run this program with
             a given --scope and it will squash all commits in the previous $scope, leaving one

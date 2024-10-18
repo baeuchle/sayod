@@ -41,11 +41,12 @@ def read_log(**kwargs):
     return entries
 
 class LogReader:
+    prog = 'logreader'
     print_result = True
 
     @classmethod
     def add_subparser(cls, sp):
-        ap = sp.add_parser('logreader',
+        ap = sp.add_parser(cls.prog,
                         help='''Read log. Used for remote access mostly''')
         PlainLog.add_options(ap)
         return ap

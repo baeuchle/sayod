@@ -18,6 +18,7 @@ import select
 import subprocess
 import sys
 
+from .arguments import Arguments
 from .config import Config
 from .tester import TesterFactory
 
@@ -65,7 +66,7 @@ class Provider:
         if not self.provided:
             plog.info("Not releasing unacquired %s", self.name)
             return False
-        rlresult = self.release()
+        rlresult = self.release(exc_type is not None)
         if rlresult.returncode == 0:
             self.provided = False
         else:
@@ -78,7 +79,7 @@ class Provider:
         plog.info("Acquiring %s", self.name)
         return self.success()
 
-    def release(self):
+    def release(self, _):
         plog.info("Releasing %s", self.name)
         return self.success()
 
@@ -89,6 +90,46 @@ class Provider:
     @classmethod
     def failure(cls, reason=""):
         return subprocess.CompletedProcess(args=['false'], returncode=1, stdout="", stderr=reason)
+
+# TODO: SayodProvider is meant to execute one of "our" tasks, either
+# before (standard) or after (possible extension) the main task.
+# Success is needed so that next tasks can be done; for 'after'
+# flavour, we might specify if it happens if all else worked or if it
+# didn't.
+class SayodProvider(Provider):
+    def __init__(self, name, config):
+        super().__init__(name, config)
+        self.command = config.pop('command', '')
+        if not self.command:
+            raise ProvideError(f'Cannot find ActionProvider {name}::command')
+        self.command_klass = Arguments.combine_dict.get(self.command, False)
+        if not self.command_klass:
+            if self.command in Arguments.command_dict:
+                raise ProvideError(f'Command {self.command} cannot be used as Action!')
+            raise ProvideError(f'Command {self.command} not found!')
+        plog.info("subcommand results in class %s", self.command_klass)
+        self.run_before = config.get('before', 'yes') != 'no'
+
+    def run(self):
+        try:
+            result = self.command_klass.standalone()
+            return self.success() if result else self.failure()
+        except Exception as e:
+            return self.failure(str(e))
+
+    def acquire(self):
+        if not self.run_before:
+            return self.success()
+        return self.run()
+
+    def release(self, is_exception):
+        if not super().release(is_exception):
+            return self.failure()
+        if is_exception:
+            return self.failure("Not running because main task failed")
+        if self.run_before:
+            return self.success()
+        return self.run()
 
 class DirectoryProvider(Provider):
     def __init__(self, name, config):
@@ -102,7 +143,9 @@ class DirectoryProvider(Provider):
         except FileExistsError as fee:
             return self.failure(str(fee))
 
-    def release(self):
+    def release(self, is_exception):
+        if not super().release(is_exception):
+            return self.failure()
         try:
             self.dir.rmdir()
             return self.success()
@@ -152,8 +195,8 @@ class MountProvider(Provider):
         super().__init__(name, config)
         self.local_path = config.get('local_path', '/home')
 
-    def release(self):
-        if not super().release():
+    def release(self, is_exception):
+        if not super().release(is_exception):
             return self.failure()
         command = ['fusermount', '-u', self.local_path]
         return subprocess.run(command, text=True, capture_output=True, check=False)
@@ -190,8 +233,8 @@ class AdbProvider(Provider):
         command = ['adb', 'connect', self.device]
         return subprocess.run(command, text=True, capture_output=True, check=False)
 
-    def release(self):
-        if not super().release():
+    def release(self, is_exception):
+        if not super().release(is_exception):
             return self.failure()
         command = ['adb', 'disconnect', self.device]
         return subprocess.run(command, text=True, capture_output=True, check=False)
@@ -229,4 +272,6 @@ def ProviderFactory(name):
         return AdbFsProvider(name, section)
     if action == 'mkdir':
         return DirectoryProvider(name, section)
+    if action == 'sayod':
+        return SayodProvider(name, section)
     raise NotImplementedError(f"Provider for {action}")
