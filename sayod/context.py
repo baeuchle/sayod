@@ -12,15 +12,6 @@ clog = logging.getLogger(__name__)
 
 class Context:
     @classmethod
-    def add_options(cls, parser):
-        parser.add_argument('--force', '-f',
-                            default=False,
-                            action='store_true',
-                            required=False,
-                            help="Ignore deadtime and force action",
-                            dest="context_force")
-
-    @classmethod
     def test_deadtime(cls, **kwargs):
         deadtime = int(Config.get().find('rsync', 'deadtime', 0))
         if deadtime <= 0:
