@@ -65,7 +65,7 @@ class Provider:
         if not self.provided:
             plog.info("Not releasing unacquired %s", self.name)
             return False
-        rlresult = self.release()
+        rlresult = self.release(exc_type is not None)
         if rlresult.returncode == 0:
             self.provided = False
         else:
@@ -78,7 +78,7 @@ class Provider:
         plog.info("Acquiring %s", self.name)
         return self.success()
 
-    def release(self):
+    def release(self, _):
         plog.info("Releasing %s", self.name)
         return self.success()
 
@@ -102,7 +102,9 @@ class DirectoryProvider(Provider):
         except FileExistsError as fee:
             return self.failure(str(fee))
 
-    def release(self):
+    def release(self, is_exception):
+        if not super().release(is_exception):
+            return self.failure()
         try:
             self.dir.rmdir()
             return self.success()
@@ -152,8 +154,8 @@ class MountProvider(Provider):
         super().__init__(name, config)
         self.local_path = config.get('local_path', '/home')
 
-    def release(self):
-        if not super().release():
+    def release(self, is_exception):
+        if not super().release(is_exception):
             return self.failure()
         command = ['fusermount', '-u', self.local_path]
         return subprocess.run(command, text=True, capture_output=True, check=False)
@@ -190,8 +192,8 @@ class AdbProvider(Provider):
         command = ['adb', 'connect', self.device]
         return subprocess.run(command, text=True, capture_output=True, check=False)
 
-    def release(self):
-        if not super().release():
+    def release(self, is_exception):
+        if not super().release(is_exception):
             return self.failure()
         command = ['adb', 'disconnect', self.device]
         return subprocess.run(command, text=True, capture_output=True, check=False)
