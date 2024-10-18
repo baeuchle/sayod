@@ -24,7 +24,7 @@ def find_sources():
         raise SystemExit(127) from ke
     return list(sls.values())
 
-def do_copy(**kwargs):
+def do_copy():
     Notify.get().start("Starte Backup")
     sources = find_sources()
     target = Config.get().find('target', 'path', None)
@@ -53,5 +53,5 @@ class Copy:
         )
 
     @classmethod
-    def standalone(cls, **kwargs):
-        do_copy(**kwargs)
+    def standalone(cls, **_):
+        do_copy()
