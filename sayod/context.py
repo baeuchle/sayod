@@ -18,6 +18,7 @@ class Context:
             clog.debug("No deadtime given, going ahead")
             return True
         last_success = remote('SUCCESS', PlainLog.LAST).date
+        clog.debug("Last success was %s", last_success)
         tage = (datetime.datetime.today() - last_success).days
         if tage > deadtime:
             clog.info("Deadtime is over")

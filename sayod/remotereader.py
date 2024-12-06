@@ -43,6 +43,7 @@ def remote(subjects, action):
                 head='Backup-Fehler {}')
             raise RuntimeError(err)
         for line in proc.stdout.readlines():
+            lrlog.debug("Received line %s", line)
             if line.strip():
                 results.append(TaggedEntry(line))
     if not results:
