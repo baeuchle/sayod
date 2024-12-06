@@ -23,7 +23,8 @@ def get_action(**kwargs):
         return kwargs['action']
     action = PlainLog.LIST
     for line in sys.stdin:
-        action = line.strip()
+        if line.strip():
+            action = line.strip()
     return action
 
 def read_log(**kwargs):
