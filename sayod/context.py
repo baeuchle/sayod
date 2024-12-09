@@ -25,7 +25,7 @@ class Context:
             return True
         if not kwargs.get('context_force', False):
             Notify.get().deadtime(
-                    f"Letztes erfolgreiches Backup war vor weniger als {deadtime} Tagen")
+                f"Letztes erfolgreiches Backup war vor weniger als {deadtime} Tagen ({last_success:%d.%m.%Y})")
             return False
         clog.info("Deadtime ignored because --force was specified")
         return True
