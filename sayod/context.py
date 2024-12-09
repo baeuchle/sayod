@@ -17,14 +17,15 @@ class Context:
         if deadtime <= 0:
             clog.debug("No deadtime given, going ahead")
             return True
-        last_success = remote('SUCCESS', PlainLog.LAST).date
+        last_success = remote(['SUCCESS'], PlainLog.LAST).date
+        clog.debug("Last success was %s", last_success)
         tage = (datetime.datetime.today() - last_success).days
         if tage > deadtime:
             clog.info("Deadtime is over")
             return True
         if not kwargs.get('context_force', False):
             Notify.get().deadtime(
-                    f"Letztes erfolgreiches Backup war vor weniger als {deadtime} Tagen")
+                f"Letztes erfolgreiches Backup war vor weniger als {deadtime} Tagen ({last_success:%d.%m.%Y})")
             return False
         clog.info("Deadtime ignored because --force was specified")
         return True

@@ -1,12 +1,15 @@
 import datetime
+import logging
 from textwrap import TextWrapper
+
+telog = logging.getLogger(__name__)
 
 class TaggedEntry:
     timeformat = '%Y-%m-%dT%H:%M:%S'
 
     def __init__(self, content, subject=None, date=None):
         """subject is the "tag", e.g., DEADTIME or SUCCESS"""
-
+        telog.debug("Creating TaggedEntry from %s", content)
         # sensible default in many branches:
         self.date = datetime.datetime.now()
         self.content = ""

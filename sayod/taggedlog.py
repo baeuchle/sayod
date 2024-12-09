@@ -1,5 +1,8 @@
 import datetime
+import logging
 from .taggedentry import TaggedEntry
+
+tllog = logging.getLogger(__name__)
 
 class TaggedLog:
     def __init__(self, log_file, mode='r'):
@@ -31,6 +34,8 @@ class TaggedLog:
                 opts[key] = val
             if 'subject' in kwargs:
                 opts['subjects'].append(kwargs['subject'])
+        opts['action'] = opts['action'].lower()
+        tllog.debug("TaggedLog looks for %s in %s", opts['action'], opts['subjects'])
         result = []
         if opts['action'] == 'last':
             result.append(None)

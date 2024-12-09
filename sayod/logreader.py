@@ -16,6 +16,9 @@ def get_subjects(**kwargs):
         if line.strip() == "":
             break
         subject_list.append(line.strip())
+    # this is due to a bug in sayod<=5.2.2 which sent SUCCESS as single letters.
+    if all(len(x) == 1 for x in subject_list):
+        subject_list = [''.join(subject_list)]
     return subject_list
 
 def get_action(**kwargs):
@@ -23,7 +26,8 @@ def get_action(**kwargs):
         return kwargs['action']
     action = PlainLog.LIST
     for line in sys.stdin:
-        action = line.strip()
+        if line.strip():
+            action = line.strip()
     return action
 
 def read_log(**kwargs):
