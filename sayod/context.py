@@ -30,10 +30,13 @@ class Context:
         clog.info("Deadtime ignored because --force was specified")
         return True
 
-    def __init__(self):
+    def __init__(self, subcommand='copy'):
         self.es_obj = ExitStack()
         self.es = None
-        self.providers = Config.get().find('context', 'providers', '').split()
+        if subcommand in ['analyse']:
+            self.providers = []
+        else:
+            self.providers = Config.get().find('context', 'providers', '').split()
 
     def __enter__(self):
         clog.info("Entering provider contexts...")

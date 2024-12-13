@@ -23,9 +23,9 @@ def _run():
         raise SayodCommandNotFound(f"Subcommand {subcommand} not found")
     mlog.info("Subcommand %s found", subcommand)
 
-    if not Context.test_deadtime(**args_dict):
+    if not Context.test_deadtime(**args_dict) and not subcommand in ['analyse']:
         return True
-    with Context() as _:
+    with Context(subcommand) as _:
         result = command_klass.standalone(**args_dict)
     # may be string, boolean, or list (or something else)
     if isinstance(result, bool):
