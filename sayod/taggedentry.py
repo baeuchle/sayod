@@ -9,7 +9,7 @@ class TaggedEntry:
 
     def __init__(self, content, subject=None, date=None):
         """subject is the "tag", e.g., DEADTIME or SUCCESS"""
-        telog.debug("Creating TaggedEntry from %s", content)
+        telog.debug("Creating TaggedEntry from %s", content.strip())
         # sensible default in many branches:
         self.date = datetime.datetime.now()
         self.content = ""

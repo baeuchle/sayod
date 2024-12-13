@@ -123,6 +123,8 @@ class _Analyse:
         self.text = self.text.strip()
 
     def send_mail(self):
+        if not self.has_something_to_report:
+            return
         can_log = True
         try:
             write_log = TaggedLog(self.log_obj.log_file, 'a+')
