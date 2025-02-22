@@ -95,6 +95,41 @@ class Provider:
         return subprocess.CompletedProcess(args=['false'], returncode=1, stdout="", stderr=reason)
 
 
+class SemaphoreProvider(Provider):
+    def __init__(self, name, config):
+        super().__init__(name, config)
+        self.target = Path(config.get('file', '/tmp/semaphore'))
+        self.if_exists = True
+        self.execute_if_present = config.get('if_present', 'no') == 'yes'
+        self.toggle_after_success = config.get('toggle', 'yes') == 'yes'
+
+    def acquire(self):
+        if not super().acquire():
+            return self.failure()
+        if self.execute_if_present and not self.target.exists():
+            plog.info("Semaphore file doesn't exist, aborting")
+            return self.failure()
+        if not self.execute_if_present and self.target.exists():
+            plog.info("Semaphore file already exists, aborting")
+            return self.failure()
+        return self.success()
+
+    def release(self, is_exception):
+        if not super().release(is_exception):
+            return self.failure()
+        if is_exception:
+            return self.success()  # *this* release succeeded even if others didn't.
+        # unlink if the target existed at the beginning:
+        if self.execute_if_present and self.target.exists():
+            self.target.unlink()
+        # touch if the target didn't exist at the beginning:
+        if not self.execute_if_present and not self.target.exists():
+            self.target.touch()
+        # it doesn't really matter if the file unexpectedly exists or unexpectedly doesn't exist
+        # anymore, only then we don't have to worry about cleaning up.
+        return self.success()
+
+
 # TODO: SayodProvider is meant to execute one of "our" tasks, either
 # before (standard) or after (possible extension) the main task.
 # Success is needed so that next tasks can be done; for 'after'
@@ -285,4 +320,6 @@ def ProviderFactory(name):
         return DirectoryProvider(name, section)
     if action == 'sayod':
         return SayodProvider(name, section)
+    if action == 'semaphore':
+        return SemaphoreProvider(name, section)
     raise NotImplementedError(f"Provider for {action}")
