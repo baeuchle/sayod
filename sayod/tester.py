@@ -7,8 +7,8 @@ import logging
 
 tlog = logging.getLogger(__name__)
 
-# pylint: disable=too-few-public-methods
 
+# pylint: disable=too-few-public-methods
 class Tester:
     """Tests if something exists already"""
     def __init__(self, command):
@@ -21,9 +21,11 @@ class Tester:
     def default_postrequisite(self):
         return self
 
+
 class NoneTester(Tester):
     def __init__(self):
         super().__init__("<None>")
+
 
 class AlwaysTester(Tester):
     def __init__(self):
@@ -35,6 +37,7 @@ class AlwaysTester(Tester):
     def default_postrequisite(self):
         return NoneTester()
 
+
 class MountpointTester(Tester):
     def __init__(self, path):
         super().__init__("mountpoint")
@@ -44,6 +47,7 @@ class MountpointTester(Tester):
         tlog.info("testing mountpoint of %s", str(self.path))
         return self.path.is_mount()
 
+
 class DirectoryTester(Tester):
     def __init__(self, path):
         super().__init__("directory")
@@ -52,6 +56,7 @@ class DirectoryTester(Tester):
     def test(self):
         tlog.info("testing is %s a directory", str(self.path))
         return self.path.is_dir()
+
 
 def TesterFactory(command):
     words = command.split()

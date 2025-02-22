@@ -8,6 +8,7 @@ from .taggedlog import TaggedLog
 
 lrlog = logging.getLogger(__name__)
 
+
 def get_subjects(**kwargs):
     if kwargs.get('subject', False):
         return kwargs['subject']
@@ -21,6 +22,7 @@ def get_subjects(**kwargs):
         subject_list = [''.join(subject_list)]
     return subject_list
 
+
 def get_action(**kwargs):
     if kwargs.get('action', False):
         return kwargs['action']
@@ -29,6 +31,7 @@ def get_action(**kwargs):
         if line.strip():
             action = line.strip()
     return action
+
 
 def read_log(**kwargs):
     status_file = Config.get().find('status', 'file', None)
@@ -44,6 +47,7 @@ def read_log(**kwargs):
     entries = log_obj.find(subjects=subject_list, action=action)
     return entries
 
+
 class LogReader:
     prog = 'logreader'
     print_result = True
@@ -51,13 +55,14 @@ class LogReader:
     @classmethod
     def add_subparser(cls, sp):
         ap = sp.add_parser(cls.prog,
-                        help='''Read log. Used for remote access mostly''')
+                           help='''Read log. Used for remote access mostly''')
         PlainLog.add_options(ap)
         return ap
 
     @classmethod
     def standalone(cls, **kwargs):
         return '\n'.join(list(str(x) for x in read_log(**kwargs)))
+
 
 # entry point for 'logreader' command as created by installing the wheel
 def logreader():

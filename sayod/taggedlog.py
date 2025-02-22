@@ -4,6 +4,7 @@ from .taggedentry import TaggedEntry
 
 tllog = logging.getLogger(__name__)
 
+
 class TaggedLog:
     def __init__(self, log_file, mode='r'):
         self.log_file = log_file
@@ -23,12 +24,12 @@ class TaggedLog:
         return TaggedEntry(next(self.file_obj))
 
     def _find(self, **kwargs):
-        opts = { 'subjects': [],
-                 'ret': 'entry',
-                 'action': 'list',
-                 'since': datetime.datetime.min,
-                 'until': datetime.datetime.max,
-               }
+        opts = {'subjects': [],
+                'ret': 'entry',
+                'action': 'list',
+                'since': datetime.datetime.min,
+                'until': datetime.datetime.max,
+                }
         if kwargs is not None:
             for key, val in kwargs.items():
                 opts[key] = val
@@ -46,7 +47,7 @@ class TaggedLog:
                 continue
             if opts['until'] < entry.date:
                 continue
-            if len(opts['subjects']) != 0 and not entry.subject in opts['subjects']:
+            if len(opts['subjects']) != 0 and entry.subject not in opts['subjects']:
                 continue
             # we've got a match!
             if opts['action'] == 'count':

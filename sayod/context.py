@@ -10,6 +10,7 @@ from .remotereader import remote
 
 clog = logging.getLogger(__name__)
 
+
 class Context:
     @classmethod
     def test_deadtime(cls, **kwargs):
@@ -25,7 +26,8 @@ class Context:
             return True
         if not kwargs.get('context_force', False):
             Notify.get().deadtime(
-                f"Letztes erfolgreiches Backup war vor weniger als {deadtime} Tagen ({last_success:%d.%m.%Y})")
+                                  f"Letztes erfolgreiches Backup war vor weniger als {deadtime} "
+                                  f"Tagen ({last_success:%d.%m.%Y})")
             return False
         clog.info("Deadtime ignored because --force was specified")
         return True

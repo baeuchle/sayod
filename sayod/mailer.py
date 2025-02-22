@@ -8,6 +8,7 @@ from .taggedlog import TaggedEntry
 
 mlog = logging.getLogger(__name__)
 
+
 class Mailer:
     def __init__(self, content):
         self.text = content
@@ -34,7 +35,7 @@ class Mailer:
         with SMTP('localhost') as s:
             try:
                 s.send_message(msg)
-            except BaseException as be: # pylint: disable=broad-except
+            except BaseException as be:  # pylint: disable=broad-except
                 mlog.exception()
                 return TaggedEntry(str(be), "NOMAIL")
         return TaggedEntry(msg['To'], "MAIL")

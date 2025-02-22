@@ -10,6 +10,7 @@ from .small_commit import make_small_commit
 
 dblog = logging.getLogger(__name__)
 
+
 class _Database:
     def __init__(self):
         self.type = Config.get().find('database', 'type', 'sqlite3')
@@ -40,7 +41,7 @@ class _Database:
             hostarg = '--host='+hostname
             self.tblcmd = ['mysql', userarg, hostarg, self.source, '-BNe', 'show tables']
             self.dumpcmd = ['mysqldump', userarg, hostarg, '--skip-extended-insert',
-                '--skip-dump-date', self.source, '{}']
+                            '--skip-dump-date', self.source, '{}']
         dblog.info("Table command: '%s'", "' '".join(self.tblcmd))
         dblog.info("Dump  command: '%s'", "' '".join(self.dumpcmd))
 
@@ -49,13 +50,14 @@ class _Database:
         target = (self.dumppath / table_name).with_suffix('.sql')
         with open(target, 'w+b') as outf:
             with subprocess.Popen([arg.format(table_name) for arg in self.dumpcmd],
-                    stdout=outf,
-                    stderr=subprocess.PIPE,
-                    env=self.env) as dump_proc:
+                                  stdout=outf,
+                                  stderr=subprocess.PIPE,
+                                  env=self.env
+                                  ) as dump_proc:
                 errors = dump_proc.stderr.read()
                 if dump_proc.wait() != 0:
                     Notify.get().fatal(f"Table {table_name} in {self.source} could not be dumped:\n"
-                                   + oneline(errors))
+                                       + oneline(errors))
         return target
 
     def dump_all(self):
@@ -71,13 +73,14 @@ class _Database:
             files.append(target)
         return files
 
+
 class Database:
     prog = 'database'
 
     @classmethod
     def add_subparser(cls, sp):
         return sp.add_parser(cls.prog,
-            help="""Dumps a database and make a small commit""")
+                             help="""Dumps a database and make a small commit""")
 
     @classmethod
     def standalone(cls, **_):

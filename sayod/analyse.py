@@ -9,6 +9,7 @@ from .version import __version__
 
 alog = logging.getLogger(__name__)
 
+
 class _Analyse:
     def __init__(self):
         self.error_log = {
@@ -17,7 +18,7 @@ class _Analyse:
             'ERR': []
         }
         self.content_headlines = {cat: Config.get().find('category_headlines', cat, cat)
-                                    for cat in self.error_log }
+                                  for cat in self.error_log}
         self.log_obj = TaggedLog(Config.get().find('status', 'file', ''), 'r')
         self.warn_missing_success = Config.get().find("status", "warn_missing", 9)
         self.now = datetime.datetime.now()
@@ -36,25 +37,25 @@ class _Analyse:
         if last_success.date >= self.warn_missing_since:
             return
         msg = Config.get().find("messages", "warn_missing",
-            "Last successful backup was before {last_success.date:%Y.%m.%d %H:%M}."
-        ).format(
-                days=self.warn_missing_success,
-                last_success=last_success
-            )
+                                "Last successful backup was at {last_success.date:%Y.%m.%d %H:%M}."
+                                ).format(
+                                    days=self.warn_missing_success,
+                                    last_success=last_success
+                                )
         last_start = self.log_obj.find_one(subject="START", since=last_success.date, action='last')
         if last_start:
             msg += "\n\n"
             msg += Config.get().find("messages", "report_last_started",
-                "Last backup was at {last_start[0].date:%Y.%m.%d %H:%M}"
-            ).format(
-                last_start=last_start,
-                diff=(self.now - last_start.date)
-            )
+                                     "Last backup was at {last_start[0].date:%Y.%m.%d %H:%M}"
+                                     ).format(
+                                         last_start=last_start,
+                                         diff=(self.now - last_start.date)
+                                     )
         else:
             msg += "\n\n"
             msg += Config.get().find("messages", "no_further_tries",
-                "No more tries are recorded"
-            )
+                                     "No more tries are recorded"
+                                     )
         last_success.content = msg.strip().replace('\n', "\\n")
         self.error_log['WARN'].append(last_success)
         alog.warning(last_success.content)
@@ -92,10 +93,10 @@ class _Analyse:
         self.text = Config.get().find('messages', 'opening', "Hallo")
         self.text += "\n"
         self.text += Config.get().find("messages", "analyse_headline",
-            "Analysis has found {count} message(s)"
-        ).format(
-            count=self.number_of_messages
-        )
+                                       "Analysis has found {count} message(s)"
+                                       ).format(
+                                          count=self.number_of_messages
+                                       )
         self.text += "\n"
 
         for cat, content in self.error_log.items():
@@ -116,10 +117,10 @@ class _Analyse:
         self.text += Config.get().find('messages', 'closing', 'Bye')
         self.text += "\n\n--\n"
         self.text += Config.get().find("messages", "version",
-            "Created by version {version}"
-        ).format(
-            version=__version__
-        )
+                                       "Created by version {version}"
+                                       ).format(
+                                           version=__version__
+                                       )
         self.text = self.text.strip()
 
     def send_mail(self):
@@ -140,13 +141,14 @@ class _Analyse:
         if can_log:
             write_log.append(entry)
 
+
 class Analyse:
     prog = 'analyse'
 
     @classmethod
     def add_subparser(cls, sp):
         return sp.add_parser(cls.prog,
-            help='Analyses log entries and reports via mail')
+                             help='Analyses log entries and reports via mail')
 
     @classmethod
     def standalone(cls, **_):

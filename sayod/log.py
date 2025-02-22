@@ -5,18 +5,19 @@ from systemd.journal import JournalHandler
 
 root_log = logging.getLogger('sayod')
 
+
 class Log:
     @classmethod
     def add_options(cls, ap, **kwargs):
         default_level = kwargs.get('default_loglevel', 'WARNING')
         group = ap.add_argument_group('Logging')
         group.add_argument('--log-level',
-                            action='store',
-                            dest='log_level',
-                            default=default_level,
-                            choices=('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'),
-                            help='Sets the logging level',
-                            required=False
+                           action='store',
+                           dest='log_level',
+                           default=default_level,
+                           choices=('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'),
+                           help='Sets the logging level',
+                           required=False
                            )
         cls.init_root()
 

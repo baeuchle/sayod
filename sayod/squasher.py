@@ -7,6 +7,7 @@ from .scope import Scope
 
 slog = logging.getLogger(__name__)
 
+
 class _Squasher:
     def __init__(self, **kwargs):
         self.git = Git(Config.get().find('target', 'path', None), stderr=STDOUT)
@@ -26,7 +27,7 @@ class _Squasher:
         slog.info("Found %d commits between %s and %s",
                   len(self.squashables), self.sc.start_string, self.sc.end_string)
         first_commit = output[-1].strip()
-        initial_commit =  self.git.command('rev-list', '--max-parents=0', 'HEAD').strip()
+        initial_commit = self.git.command('rev-list', '--max-parents=0', 'HEAD').strip()
 
         if self.sc.keep_previous and first_commit == initial_commit:
             slog.info("Repository is not old enough for this backup scope.")
@@ -53,7 +54,7 @@ class _Squasher:
 
     def make_rebase_plan(self):
         rebase_plan = []
-        new_todo_file =  self.git.cwd / '.git' / 'rebase-merge' / 'git-rebase-todo'
+        new_todo_file = self.git.cwd / '.git' / 'rebase-merge' / 'git-rebase-todo'
         orig_todo_file = new_todo_file.with_suffix('.backup')
         with orig_todo_file.open() as rebase_plan_file:
             for line in rebase_plan_file:
@@ -100,13 +101,13 @@ class Squasher:
             previous to the last $scope, or it will simply follow that one. Commits newer than the
             previous scope (e.g., commits from this month for $scope == month) will be as untouched
             as possible (i.e., their dates are kept, their hashes not).''',
-            epilog='All of this only makes sense if you also run git gc regularly.')
+                           epilog='All of this only makes sense if you also run git gc regularly.')
         ap.add_argument('--scope', choices='monthly weekly daily'.split(), required=True)
         ap.add_argument('--keep-previous', action=argparse.BooleanOptionalAction, default=None,
-            help='''Squash the first commit in the range into its previous commit. This should only
-            be activated at the longest interval that is used for the given repository. If not
-            given, the default value depends on --scope: for monthly: True, for weekly and daily:
-            False.''')
+                        help='''Squash the first commit in the range into its previous commit. This
+                        should only be activated at the longest interval that is used for the given
+                        repository. If not given, the default value depends on --scope: for monthly:
+                        True, for weekly and daily: False.''')
         return ap
 
     @classmethod

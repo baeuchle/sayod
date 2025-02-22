@@ -10,20 +10,21 @@ from .taggedentry import TaggedEntry
 
 lrlog = logging.getLogger(__name__)
 
+
 def remote(subjects, action):
     results = []
     ssh = Notify.get().ssh
     lrlog.info("Connecting to ssh -> logreader for %s on %s", action, subjects)
     with Popen(['ssh',
                 '-l', ssh['user'],
-                      ssh['host'],
+                ssh['host'],
                 '-p', ssh['port'],
                 'logreader'
-            ],
-            text=True,
-            stdin=PIPE,
-            stdout=PIPE,
-            stderr=PIPE) as proc:
+                ],
+               text=True,
+               stdin=PIPE,
+               stdout=PIPE,
+               stderr=PIPE) as proc:
         proc.stdin.write('content-type: text/x-plain-ask\n')
         # first, choose the configuration file:
         proc.stdin.write(ssh['remote'] + "\n")
@@ -40,7 +41,7 @@ def remote(subjects, action):
         err = proc.stderr.read()
         if returncode != 0:
             Notify.get().notify_local(f"Kann entferntes Log nicht lesen:\n{oneline(err)}",
-                head='Backup-Fehler {}')
+                                      head='Backup-Fehler {}')
             raise RuntimeError(err)
         for line in proc.stdout.readlines():
             lrlog.debug("Received line %s", line)
@@ -55,6 +56,7 @@ def remote(subjects, action):
     if action == PlainLog.COUNT:
         return len(results)
     return results
+
 
 class RemoteReader:
     prog = 'remotereader'
