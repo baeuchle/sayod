@@ -41,8 +41,9 @@ class _Squasher:
         if self.git.returncode != 0:
             slog.error("git rebase failed: %s", prepare_output)
             return
-        # this has created an empty file in .git/rebase-merge/git-rebase-todo (had 'break', but that
-        # is already done) and a non-empty file in .git/rebase-merge/git-rebase-todo.backup
+        # this has created an empty file in .git/rebase-merge/git-rebase-todo (had 'break', but the
+        # break has already been executed) and a non-empty file in
+        # .git/rebase-merge/git-rebase-todo.backup
         self.make_rebase_plan()
 
         rb_continue_output = self.git.command('rebase', '--continue')
@@ -51,6 +52,14 @@ class _Squasher:
             abort_output = self.git.command('rebase', '--abort')
             if self.git.returncode != 0:
                 slog.error("Cannot even abort rebase: %s", abort_output)
+
+    def push(self, do_it):
+        if do_it == 'no':
+            return
+        force = ['--force'] if do_it == 'force' else []
+        for orig in Config.get().find('git', 'origins', '').split():
+            slog.info('Pushing to origin %s', orig)
+            self.git.command('push', '-q', *force, orig, Config.get().find('git', 'branch', 'main'))
 
     def make_rebase_plan(self):
         rebase_plan = []
@@ -108,10 +117,18 @@ class Squasher:
                         should only be activated at the longest interval that is used for the given
                         repository. If not given, the default value depends on --scope: for monthly:
                         True, for weekly and daily: False.''')
+        ap.add_argument('--push', choices='force yes no'.split(), default='no',
+                        help='''After successful squashing (i.e., the repository has changed), push
+                        to all configured remote repositories. If 'force', 'push --force' is used
+                        (overwriting previous data at the remote repository).''')
         return ap
 
     @classmethod
     def standalone(cls, **kwargs):
         sq = _Squasher(**kwargs)
+        old_hash = sq.git.hash()
         sq.handle()
-        return sq.git.hash()
+        new_hash = sq.git.hash()
+        if old_hash != new_hash:
+            sq.push(kwargs.get('push', 'no'))
+        return new_hash
