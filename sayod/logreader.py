@@ -74,6 +74,8 @@ def logreader():
         content_type = line[len("content-type: "):]
         lrlog.debug("received %s", line)
         line = sys.stdin.readline().strip()
+    if content_type != "text/x-plain-ask":
+        lrlog.warning("Unknown content-type %s", content_type)
     Config.init(configuration_file=line)
 
     print(LogReader.standalone())
