@@ -4,6 +4,7 @@ from textwrap import TextWrapper
 
 telog = logging.getLogger(__name__)
 
+
 class TaggedEntry:
     timeformat = '%Y-%m-%dT%H:%M:%S'
 
@@ -27,7 +28,7 @@ class TaggedEntry:
                     self.subject = words[1]
                     if len(words) > 2:
                         self.content = ' '.join(words[2:])
-                except:
+                except Exception:
                     self.subject = words[0]
                     self.content = ' '.join(words[1:])
         else:
@@ -45,11 +46,11 @@ class TaggedEntry:
             self.content.replace("\n", '\\n'))
 
     def long_text(self, **kwargs):
-        opts = { 'linestart': '',
-                 'prefix': '',
-                 'linelength': 72,
-                 'dateformat': TaggedEntry.timeformat,
-               }
+        opts = {'linestart': '',
+                'prefix': '',
+                'linelength': 72,
+                'dateformat': TaggedEntry.timeformat,
+                }
         if kwargs is not None:
             for key, val in kwargs.items():
                 opts[key] = val
@@ -60,13 +61,14 @@ class TaggedEntry:
         wrapper = TextWrapper(
             width=opts['linelength'],
             break_long_words=True,
-            initial_indent = ('{:' + str(len(opts['prefix'])) + 's}').format(' '),
-            subsequent_indent = ('{:' + str(len(opts['prefix'])) + 's}').format(' '),
+            initial_indent=('{:' + str(len(opts['prefix'])) + 's}').format(' '),
+            subsequent_indent=('{:' + str(len(opts['prefix'])) + 's}').format(' '),
         )
         for paragraph in self.content.strip().split('\\n\\n'):
             result += wrapper.fill(paragraph.replace('\\n', ' '))
             result += "\n\n"
         return result
+
 
 def _FromPlainLog(stream):
     result = TaggedEntry("")
@@ -77,6 +79,7 @@ def _FromPlainLog(stream):
         break
     result.content = stream.read().strip()
     return result
+
 
 def FromStream(stream, content_type='text/x-plain-log'):
     if content_type == "text/x-plain-log":

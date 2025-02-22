@@ -9,6 +9,7 @@ from .version import __version__
 
 rlog = logging.getLogger(__name__)
 
+
 class _Receiver:
     def __init__(self, content_type):
         self.content_type = content_type
@@ -22,6 +23,7 @@ class _Receiver:
         entry = FromStream(sys.stdin, self.content_type)
         log_obj.append(entry)
 
+
 class Receiver:
     prog = 'receive'
     _instance = None
@@ -29,8 +31,8 @@ class Receiver:
     @classmethod
     def add_subparser(cls, sp):
         return sp.add_parser(cls.prog,
-            help='''Reads new log entries from STDIN and adds them to the appropriate log.
-            Communication follows text/x-plain-log type''')
+                             help='''Reads new log entries from STDIN and adds them to the
+                             appropriate log.  Communication follows text/x-plain-log type''')
 
     @classmethod
     def standalone(cls, **_):
@@ -50,6 +52,7 @@ class Receiver:
         Log.init(name="receiver " + line.strip())
         Config.init(configuration_file=line)
         cls._instance = _Receiver(content_type)
+
 
 # entry point for 'receiver' command as created by installing the wheel
 def receiver():

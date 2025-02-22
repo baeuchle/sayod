@@ -12,6 +12,7 @@ from .notify import Notify
 
 sclog = logging.getLogger(__name__)
 
+
 def make_small_commit(gitobj, addables):
     for pattern in Config.get().find('git', 'add', '').split():
         path = gitobj.cwd / Path(pattern)
@@ -31,6 +32,7 @@ def make_small_commit(gitobj, addables):
 
     Notify.get().success("Current commit is", gitobj.hash())
 
+
 class SmallCommit:
     prog = 'smallcommit'
 
@@ -38,10 +40,10 @@ class SmallCommit:
     def add_subparser(cls, sp):
         ap = sp.add_parser(cls.prog, help="""Creates a small commit""")
         ap.add_argument('--add', '-a',
-            action='append',
-            required=False,
-            default=[]
-        )
+                        action='append',
+                        required=False,
+                        default=[]
+                        )
         return ap
 
     @classmethod

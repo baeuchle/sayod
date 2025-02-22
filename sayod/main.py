@@ -9,6 +9,7 @@ from .version import __version__
 
 mlog = logging.getLogger('sayod.main')
 
+
 def _run():
     cli_args = Arguments()
     args_dict = cli_args.get_arguments()
@@ -23,7 +24,7 @@ def _run():
         raise SayodCommandNotFound(f"Subcommand {subcommand} not found")
     mlog.info("Subcommand %s found", subcommand)
 
-    if not Context.test_deadtime(**args_dict) and not subcommand in ['analyse']:
+    if not Context.test_deadtime(**args_dict) and subcommand not in ['analyse']:
         return True
     with Context(subcommand) as _:
         result = command_klass.standalone(**args_dict)
@@ -39,6 +40,7 @@ def _run():
         return False
     return True
 
+
 def run():
     try:
         _run()
@@ -48,6 +50,7 @@ def run():
         if Notify.get():
             Notify.get().fatal("Sayod failed hard:", str(e))
         print(e)
+
 
 if __name__ == '__main__':
     run()

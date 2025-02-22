@@ -10,6 +10,7 @@ from .gitversion import Git
 
 zglog = logging.getLogger(__name__)
 
+
 class _ZippedGit:
     def __init__(self, gitdir):
         self.git = Git(gitdir)
@@ -43,9 +44,10 @@ class _ZippedGit:
             zipargs.append('-p'+password)
         zipargs.append('x')
         zipargs.append(str(file))
-        _ = run(zipargs, check=False) # TODO use error handling
+        _ = run(zipargs, check=False)  # TODO use error handling
         self.git.command('add', '.')
         self.git.command('commit', '-m', f"BACKUP {zipdata:%Y-%m-%d}\n\nfrom file {file.stem}")
+
 
 class ZippedGit:
     prog = 'zipped-git'
@@ -53,8 +55,9 @@ class ZippedGit:
     @classmethod
     def add_subparser(cls, sp):
         return sp.add_parser(cls.prog,
-            help='Unpack a zip file and use its contents to replace a git working directory.'
-        )
+                             help='Unpack a zip file and use its contents to replace a '
+                                  'git working directory.'
+                             )
 
     @classmethod
     def standalone(cls, **_):

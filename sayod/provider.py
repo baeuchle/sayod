@@ -24,11 +24,14 @@ from .tester import TesterFactory
 
 plog = logging.getLogger(__name__)
 
+
 class ProvideError(Exception):
     pass
 
+
 class PostrequisiteError(ProvideError):
     pass
+
 
 class Provider:
     """Provides sources, targets, etc
@@ -55,7 +58,7 @@ class Provider:
             self.provided = True
         else:
             plog.error("Acquiring %s failed. Exit %d stderr <%s>",
-                    self.name, aqresult.returncode, aqresult.stderr.strip())
+                       self.name, aqresult.returncode, aqresult.stderr.strip())
             raise ProvideError(self.name)
         if not self.post.test():
             plog.error("Postrequisite for %s failed", self.name)
@@ -71,7 +74,7 @@ class Provider:
             self.provided = False
         else:
             plog.error("Releasing %s failed. Exit %d Output %s",
-                    self.name, rlresult.returncode, rlresult.stderr)
+                       self.name, rlresult.returncode, rlresult.stderr)
         # is exc_type a ProvideError or a derivative of ProvideError?
         return not exc_type or ProvideError in exc_type.__mro__
 
@@ -90,6 +93,7 @@ class Provider:
     @classmethod
     def failure(cls, reason=""):
         return subprocess.CompletedProcess(args=['false'], returncode=1, stdout="", stderr=reason)
+
 
 # TODO: SayodProvider is meant to execute one of "our" tasks, either
 # before (standard) or after (possible extension) the main task.
@@ -131,6 +135,7 @@ class SayodProvider(Provider):
             return self.success()
         return self.run()
 
+
 class DirectoryProvider(Provider):
     def __init__(self, name, config):
         super().__init__(name, config)
@@ -151,6 +156,7 @@ class DirectoryProvider(Provider):
             return self.success()
         except OSError as oe:
             return self.failure(str(oe))
+
 
 class ManualProvider(Provider):
     def __init__(self, name, config):
@@ -190,6 +196,7 @@ class ManualProvider(Provider):
             return self.failure("Manual abort")
         return self.failure("Timeout")
 
+
 class MountProvider(Provider):
     def __init__(self, name, config):
         super().__init__(name, config)
@@ -200,6 +207,7 @@ class MountProvider(Provider):
             return self.failure()
         command = ['fusermount', '-u', self.local_path]
         return subprocess.run(command, text=True, capture_output=True, check=False)
+
 
 class SshFsProvider(MountProvider):
     def __init__(self, name, config):
@@ -224,6 +232,7 @@ class SshFsProvider(MountProvider):
             command.append(mo)
         return subprocess.run(command, text=True, capture_output=True, check=False)
 
+
 class AdbProvider(Provider):
     def __init__(self, name, config):
         super().__init__(name, config)
@@ -238,6 +247,7 @@ class AdbProvider(Provider):
             return self.failure()
         command = ['adb', 'disconnect', self.device]
         return subprocess.run(command, text=True, capture_output=True, check=False)
+
 
 class AdbFsProvider(MountProvider):
     def __init__(self, name, config):
@@ -257,6 +267,7 @@ class AdbFsProvider(MountProvider):
         if self.device:
             env_args['ANDROID_SERIAL'] = self.device
         return subprocess.run(command, text=True, capture_output=True, check=False, env=env_args)
+
 
 def ProviderFactory(name):
     action = Config.get().find(name, 'action', '')

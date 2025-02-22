@@ -16,8 +16,10 @@ from .squasher import Squasher
 from .zippedgit import ZippedGit
 from .version import __version__
 
+
 class SayodCommandNotFound(ValueError):
     pass
+
 
 class Arguments:
     _klasses = (Analyse, Copy, Config, Database, GrandCommit, Notify, LogReader, Receiver,
@@ -48,7 +50,7 @@ class Arguments:
         Notify.add_options(self.parser)
         self.add_context_options(self.parser)
         sp = self.parser.add_subparsers(help="""Different sayod tasks are available:""",
-                                   dest="subcommand")
+                                        dest="subcommand")
         for klass in Arguments._single_klasses:
             klass.add_subparser(sp)
             Arguments.command_dict[klass.prog] = klass

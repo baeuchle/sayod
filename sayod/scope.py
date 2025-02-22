@@ -5,6 +5,7 @@ from .config import Config
 
 slog = logging.getLogger(__name__)
 
+
 class Scope:
     INTO_DEFAULTS = {'monthly': True, 'weekly': False, 'daily': False}
 
@@ -18,7 +19,7 @@ class Scope:
             self.end_date = today.replace(day=1)
             self.start_date = (self.end_date - timedelta(days=1)).replace(day=1)
         elif scope == 'weekly':
-            self.end_date = today - timedelta(days=today.weekday()) # this is last monday midnight
+            self.end_date = today - timedelta(days=today.weekday())  # this is last monday midnight
             self.start_date = self.end_date - timedelta(days=7)
         elif scope == 'daily':
             self.end_date = today

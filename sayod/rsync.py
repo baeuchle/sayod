@@ -8,6 +8,7 @@ from .notify import Notify
 
 rlog = logging.getLogger(__name__)
 
+
 class RSync:
     # pylint: disable=too-many-instance-attributes
     def __init__(self):
@@ -15,7 +16,7 @@ class RSync:
         self.exe_args = ['rsync']
         self.options = []
         self.fill_options()
-        self.popen_args = {'stdout':subprocess.PIPE, 'stderr':subprocess.PIPE, 'text':True}
+        self.popen_args = {'stdout': subprocess.PIPE, 'stderr': subprocess.PIPE, 'text': True}
         self.stderr = ""
         self.stdout = ""
         self.returncode = None
@@ -59,8 +60,8 @@ class RSync:
     def sudo(self):
         if not self.config.get('privilege', False):
             return
-        rlog.warning('Using privileged rsync is deprecated,' +
-            ' you should rather run this as a privileged user!')
+        rlog.warning('Using privileged rsync is deprecated,'
+                     ' you should rather run this as a privileged user!')
         self.exe_args.insert(0, 'sudo')
         self.popen_args['stdin'] = subprocess.PIPE
 
@@ -82,7 +83,7 @@ class RSync:
 
     def notify_result(self):
         rlog.info("RSYNC done, exit code %d, %d log lines, %d error lines",
-            self.returncode, self.out_len, self.err_len)
+                  self.returncode, self.out_len, self.err_len)
         error = ' '.join(self.stderr)
         code = f'{self.returncode}\n{error}'
         if self.returncode == 0:

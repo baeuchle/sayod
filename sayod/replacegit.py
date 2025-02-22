@@ -7,6 +7,7 @@ from .notify import Notify
 
 rglog = logging.getLogger(__name__)
 
+
 class ReplaceGit:
     prog = 'replace-git'
 
@@ -15,7 +16,7 @@ class ReplaceGit:
         ap = sp.add_parser(cls.prog,
                            help='''Replaces all files inside a git repository with the current
                            working directory's content and creates a new commit'''
-                          )
+                           )
         ap.add_argument('--directory', required=False)
         return ap
 

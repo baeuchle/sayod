@@ -6,6 +6,7 @@ from .rsync import RSync
 
 clog = logging.getLogger(__name__)
 
+
 def find_sources():
     source = Config.get().find('source', 'path', None)
     if source:
@@ -23,6 +24,7 @@ def find_sources():
         clog.critical('[%s] should be present in configuration', source_list)
         raise SystemExit(127) from ke
     return list(sls.values())
+
 
 def do_copy():
     Notify.get().start("Starte Backup")
@@ -43,14 +45,16 @@ def do_copy():
     rsync.run(sources=sources, target=target)
     rsync.wrapup()
 
+
 class Copy:
     prog = 'copy'
 
     @classmethod
     def add_subparser(cls, sp):
         return sp.add_parser(cls.prog,
-            help="Creates Backups by rsync'ing and notifies about the success of failure thereof."
-        )
+                             help="Creates Backups by rsync'ing and notifies about the success of "
+                                  "failure thereof."
+                             )
 
     @classmethod
     def standalone(cls, **_):
