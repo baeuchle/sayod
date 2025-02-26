@@ -48,14 +48,16 @@ class RSync:
     def fill_options(self):
         self.options.extend(self.config.get('options', '').split())
         self.options.append('--partial')
-        self.options.append('-v')
-        self.options.append('-i')
-        self.options.append('-a')
+        self.options.append('--verbose')
+        self.options.append('--itemize-changes')
+        self.options.append('--archive')
         if self.config.get('no_cross', '') == '-x':
-            self.options.append('-x')
+            self.options.append('--one-file-system')
         ef = self.config.get('exclude_file', False)
         if ef:
             self.options.append(f'--exclude-from={ef}')
+        if '--delete' in self.options:
+            self.options.append("--filter=P .git")
 
     def sudo(self):
         if not self.config.get('privilege', False):
