@@ -56,6 +56,8 @@ class RSync:
         ef = self.config.get('exclude_file', False)
         if ef:
             self.options.append(f'--exclude-from={ef}')
+        if '--delete' in self.options:
+            self.options.append("--filter=P .git")
 
     def sudo(self):
         if not self.config.get('privilege', False):
