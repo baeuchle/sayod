@@ -22,7 +22,7 @@ $ pip install sayod
 
 ## Usage
 
-**sayod**'s first entrypoint is **[sayod-backup](docs/sayod-backup)**. Lesser entrypoints are
+**sayod**'s first entrypoint is **[sayod-backup](docs/sayod-backup.md)**. Lesser entrypoints are
 **logreader** and **receiver** which are supposed to be called via SSH
 on a different machine to handle [deadtime](docs/context) and [notification](docs/notification)
 

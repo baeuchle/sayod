@@ -4,4 +4,5 @@ docs_dir: src
 nav:
   - Home: README.md
   - sayod-backup: docs/sayod-backup.md
+  - Configuration: docs/configuration_file.md
 theme: readthedocs
