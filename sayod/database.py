@@ -80,7 +80,7 @@ class Database:
     @classmethod
     def add_subparser(cls, sp):
         return sp.add_parser(cls.prog,
-                             help="""Dumps a database and make a small commit""")
+                             help="""Dumps the tables of a database and makes a small commit""")
 
     @classmethod
     def standalone(cls, **_):

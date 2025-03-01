@@ -89,7 +89,7 @@ class Config:
 
     @classmethod
     def add_subparser(cls, sp):
-        ap = sp.add_parser(cls.prog, help='directly read values from configuration')
+        ap = sp.add_parser(cls.prog, help='Extracts actual, interpolated configuration options')
         ap.add_argument('--section', required=True, help='Configuration file section')
         ap.add_argument('--key', required=True, help='Configuration section key')
         ap.add_argument('--default', required=False, default=None,

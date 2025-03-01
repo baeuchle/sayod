@@ -108,20 +108,27 @@ class _Squasher:
 
 
 class Squasher:
+    '''
+    Squashes backups inside a git repository so that different backup ages remain. The idea is to
+    regularly make a backup, commit everything to git. (This needs to be done independent of this
+    program.) Then, run this program with a given --scope and it will squash all commits in the
+    previous $scope, leaving one commit only. Depending on --keep_previous, the new commit will
+    replace the commit just previous to the last $scope, or it will simply follow that one. Commits
+    newer than the previous scope (e.g., commits from this month for $scope == month) will be as
+    untouched as possible (i.e., their dates are kept, their hashes not).
+
+    All of this only makes sense if you also run git gc regularly.
+    '''
     prog = 'squasher'
 
     @classmethod
     def add_subparser(cls, sp):
-        ap = sp.add_parser(cls.prog, help='''Squashes backups inside a git repository so that
-            different backup ages remain. The idea is to regularly make a backup, commit everything
-            to git. (This needs to be done independent of this program.) Then, run this program with
-            a given --scope and it will squash all commits in the previous $scope, leaving one
-            commit only. Depending on --keep_previous, the new commit will replace the commit just
-            previous to the last $scope, or it will simply follow that one. Commits newer than the
-            previous scope (e.g., commits from this month for $scope == month) will be as untouched
-            as possible (i.e., their dates are kept, their hashes not).''',
-                           epilog='All of this only makes sense if you also run git gc regularly.')
-        ap.add_argument('--scope', choices='monthly weekly daily'.split(), required=True)
+        ap = sp.add_parser(cls.prog,
+                           help='''Integrates commits from a given time period into one commit,
+                                   rebasing newer commits onto them.'''
+                           )
+        ap.add_argument('--scope', choices='monthly weekly daily'.split(), required=True,
+                        help="""The time period whose commits will be squashed""")
         ap.add_argument('--keep-previous', action=argparse.BooleanOptionalAction, default=None,
                         help='''Squash the first commit in the range into its previous commit. This
                         should only be activated at the longest interval that is used for the given

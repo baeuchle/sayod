@@ -160,7 +160,8 @@ class Notify:
 
     @classmethod
     def add_subparser(cls, sp):
-        ap = sp.add_parser(cls.prog, help='Write Notifications to libnotify and remote server')
+        ap = sp.add_parser(cls.prog, help='''Creates notifications, both to the user and to the
+                                             remote log.''')
         ap.add_argument('--level', required=True,
                         choices='abort deadtime fail fatal start success'.split())
         ap.add_argument('notification_text', nargs='+')

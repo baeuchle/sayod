@@ -52,8 +52,7 @@ class Copy:
     @classmethod
     def add_subparser(cls, sp):
         return sp.add_parser(cls.prog,
-                             help="Creates Backups by rsync'ing and notifies about the success of "
-                                  "failure thereof."
+                             help="Copies files and directories using rsync."
                              )
 
     @classmethod

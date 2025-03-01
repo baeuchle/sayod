@@ -25,14 +25,14 @@ class _Receiver:
 
 
 class Receiver:
+    '''Reads new log entries from STDIN and adds them to the appropriate log.  Communication follows
+    text/x-plain-log type'''
     prog = 'receive'
     _instance = None
 
     @classmethod
     def add_subparser(cls, sp):
-        return sp.add_parser(cls.prog,
-                             help='''Reads new log entries from STDIN and adds them to the
-                             appropriate log.  Communication follows text/x-plain-log type''')
+        return sp.add_parser(cls.prog, help='Receives new entries for the remote log.')
 
     @classmethod
     def standalone(cls, **_):
