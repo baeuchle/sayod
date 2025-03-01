@@ -10,20 +10,22 @@ gclog = logging.getLogger(__name__)
 
 
 class GrandCommit:
+    """Creates a grand commit
+
+    For a given git repository, this takes all changes since tag "stable" and packs them together
+    into one grand commit.
+
+    The purpose is to have a fine-grained short-term backup -- the small commit -- but only a
+    coarser long-term backup, provided by grand commit.
+
+    The grand commit is also mirrored."""
     prog = 'grandcommit'
 
     @classmethod
     def add_subparser(cls, sp):
         return sp.add_parser(cls.prog,
-                             help="""Creates a grand commit
-
-For a given git repository, this takes all changes since tag "stable" and packs them together into
-one grand commit.
-
-The purpose is to have a fine-grained short-term backup -- the small commit -- but only a coarser
-long-term backup, provided by grand commit.
-
-The grand commit is also mirrored.""")
+                             help='''Integrates the last commits in a repository into one commit
+                                     only.''')
 
     @classmethod
     def standalone(cls, **_):

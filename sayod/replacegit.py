@@ -9,13 +9,16 @@ rglog = logging.getLogger(__name__)
 
 
 class ReplaceGit:
+    '''
+        Replaces all files inside a git repository with the current working directory's content and
+        creates a new commit
+    '''
     prog = 'replace-git'
 
     @classmethod
     def add_subparser(cls, sp):
         ap = sp.add_parser(cls.prog,
-                           help='''Replaces all files inside a git repository with the current
-                           working directory's content and creates a new commit'''
+                           help='Creates a commit from all files in a git working directory.',
                            )
         ap.add_argument('--directory', required=False)
         return ap
