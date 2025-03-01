@@ -15,7 +15,7 @@ usage: sayod-backup [-h] [--version] [--log-level {DEBUG,INFO,WARNING,ERROR,CRIT
 
 Most command line options apply to all commands and must be given before
 the command name. Most configuration must be set in
-[CONFIGURATION_FILE](docs/configuration_file)
+[CONFIGURATION_FILE](configuration_file.md)
 
 > **--force**, **-f**
 >> Force the action even if during its [deadtime](docs/context).
@@ -37,18 +37,7 @@ the command name. Most configuration must be set in
 >> Specifies the configuration file. If the filename is not absolute, it
 >> will be taken relative to ``$HOME/.config/sayod/``.
 >>
->> For an option value ``mytask.x``, the following paths will be tried
->> in sequence, reading each existing file. Any conflicting keys are
->> taken from the more recent configuration while the previously
->> existing keys are retained \[[configparse Documentation for Python
->> 3.13.2](https://docs.python.org/3/library/configparser.html#configparser.ConfigParser)\]:
->>
->> * ``$HOME/.config/sayod/mytask.x``
->> * ``$HOME/.config/sayod/mytask``
->> * ``$HOME/.config/sayod/mytask.rc``
->> * ``$HOME/.config/sayod/mytask.ini``
->>
->> See also [the page about configuration files](docs/configuration)
+>> See also [the page about configuration files](configuration_file.md)
 
 The following commands are available for **sayod-backup**:
 
