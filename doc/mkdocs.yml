@@ -5,4 +5,5 @@ nav:
   - Home: README.md
   - sayod-backup: docs/sayod-backup.md
   - Configuration: docs/configuration_file.md
+  - Context: docs/context.md
 theme: readthedocs
