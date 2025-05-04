@@ -107,9 +107,48 @@ If executed, then the clean-up unmounts **local_path** using
 
 ### ADB Provider
 
+**Triggered by:** action = adb
+
+Establishes an [adb](https://developer.android.com/tools/adb) connection
+to some Android device. This might have to run before an adbfs provider.
+
+Valid configuration options are:
+
+* **device** fixes the Android device serial number (or TCP/IP address,
+  if applicable) that adb uses to identify the device.
+
 ### ADBFS Provider
 
+**Triggered by:** action = adbfs
+
+Mounts a directory from some Android device with
+[adbfs](https://github.com/spion/adbfs-rootless). This executes adbfs
+directly.
+
+Valid configuration options are:
+
+* **device** fixes the Android device serial number (or TCP/IP address,
+  if applicable) that adb uses to identify the device.
+* **mountopts** for a whitespace-separated list of options passed to
+  sshfs' **-o** option.
+* **local_path** for the local mount point.
+
+If executed, then the clean-up unmounts **local_path** using
+[fusermount](https://github.com/libfuse/libfuse) -u.
+
 ### Directory Provider
+
+**Triggered by:** action = mkdir
+
+Creates a temporary directory.
+
+Valid configuration options are:
+
+* **dir** Path to the directory. Must not exist prior to execution! (Use
+  together with **unless = [is_dir](#directorytester) PATH** to mitigate)
+
+If executed, the clean-up **rmdir**s the directory. Therefore, it needs
+to be empty before clean-up!
 
 ### Semaphore Provider
 
