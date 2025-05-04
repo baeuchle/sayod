@@ -11,7 +11,7 @@ slog = logging.getLogger(__name__)
 class _Squasher:
     def __init__(self, **kwargs):
         self.git = Git(Config.get().find('target', 'path', None), stderr=STDOUT)
-        self.sc = Scope(**kwargs.get('scope', ''), **kwargs.get('keep_previous', ''))
+        self.sc = Scope(kwargs.get('scope', ''), kwargs.get('keep_previous', ''))
         self.squashables = set()
 
     def handle(self):
