@@ -19,6 +19,10 @@ def make_small_commit(gitobj, addables):
         sclog.info("Adding files from %s", path)
         addables.extend(path.parent.glob(path.name))
     for curr_file in addables:
+        gitobj.command('check-ignore', curr_file)
+        if gitobj.returncode == 1:
+            sclog.debug("%s is ignored by git", curr_file)
+            continue
         sclog.info("Adding %s", curr_file)
         gitobj.command('add', curr_file)
     if Config.get().find('git', 'add_all', False):
