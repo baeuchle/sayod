@@ -47,6 +47,8 @@ class Provider:
             self.post = self.goal.default_postrequisite()
         plog.debug("Provider %s created", name)
         self.provided = False
+        self.failed_acquire_loglevel = logging.ERROR
+        self.failed_release_loglevel = logging.ERROR
 
     def __enter__(self):
         if self.goal.test():
@@ -57,8 +59,9 @@ class Provider:
             plog.info("Provided %s", self.name)
             self.provided = True
         else:
-            plog.error("Acquiring %s failed. Exit %d stderr <%s>",
-                       self.name, aqresult.returncode, aqresult.stderr.strip())
+            plog.log(self.failed_acquire_loglevel,
+                     "Acquiring %s failed. Exit %d stderr <%s>",
+                     self.name, aqresult.returncode, aqresult.stderr.strip())
             raise ProvideError(self.name)
         if not self.post.test():
             plog.error("Postrequisite for %s failed", self.name)
@@ -73,8 +76,9 @@ class Provider:
         if rlresult.returncode == 0:
             self.provided = False
         else:
-            plog.error("Releasing %s failed. Exit %d Output %s",
-                       self.name, rlresult.returncode, rlresult.stderr)
+            plog.log(self.failed_release_loglevel,
+                     "Releasing %s failed. Exit %d Output %s",
+                     self.name, rlresult.returncode, rlresult.stderr)
         # is exc_type a ProvideError or a derivative of ProvideError?
         return not exc_type or ProvideError in exc_type.__mro__
 
@@ -102,6 +106,8 @@ class SemaphoreProvider(Provider):
         self.if_exists = True
         self.execute_if_present = config.get('if_present', 'no') == 'yes'
         self.toggle_after_success = config.get('toggle', 'yes') == 'yes'
+        # semaphore not present is not an error.
+        self.failed_acquire_loglevel = logging.INFO
 
     def acquire(self):
         if not super().acquire():
@@ -199,6 +205,7 @@ class ManualProvider(Provider):
         self.message = config.get('message', f'Bitte {name} bereitstellen')
         self.title = config.get('title', 'Manueller Eingriff erforderlich')
         self.timeout = float(config.get('timeout', 60))
+        self.dialog_timed_out = False
 
     def acquire(self):
         if not super().acquire():
@@ -207,17 +214,24 @@ class ManualProvider(Provider):
             return self.dialog_()
         return self.commandline_()
 
+    def dialog_closer_(self, app):
+        app.closeAllWindows()
+        self.dialog_timed_out = True
+
     def dialog_(self):
         if not QApplication.instance():
             app = QApplication(['ManualProvider'])
         else:
             app = QApplication.instance()
-        QTimer.singleShot(self.timeout * 1000, app.closeAllWindows)
+        QTimer.singleShot(self.timeout * 1000, lambda: self.dialog_closer_(app))
         button = QMessageBox.question(None, self.title, self.message)
         if button == QMessageBox.Yes:
             plog.info("Manual dialog Yes")
             return self.success()
-        plog.info("Manual dialog No or Timeout")
+        if self.dialog_timed_out:
+            plog.info("Manual dialog Timeout")
+            return self.failure("Manual timeout")
+        self.failed_acquire_loglevel = logging.INFO
         return self.failure("Manual abort")
 
     def commandline_(self):
@@ -228,7 +242,10 @@ class ManualProvider(Provider):
             inp = sys.stdin.readline().strip().lower()
             if inp and inp[0] in 'yj':
                 return self.success()
+            # manual abort does not require error logging
+            self.failed_acquire_loglevel = logging.INFO
             return self.failure("Manual abort")
+        self.dialog_timed_out = True
         return self.failure("Timeout")
 
 
