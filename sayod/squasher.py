@@ -33,6 +33,7 @@ class _Squasher:
         if self.sc.keep_previous and first_commit == initial_commit:
             slog.info("Repository is not old enough for this backup scope.")
             return
+        slog.debug("Found commits %s..%s", first_commit, initial_commit)
 
         # rebase onto one commit before first_commit, so that all the commits can be squashed into
         # that one.
@@ -53,6 +54,7 @@ class _Squasher:
             abort_output = self.git.command('rebase', '--abort')
             if self.git.returncode != 0:
                 slog.error("Cannot even abort rebase: %s", abort_output)
+        slog.debug("git output: %s", rb_continue_output)
 
     def push(self, do_it):
         if do_it == 'no':
@@ -69,6 +71,8 @@ class _Squasher:
         with orig_todo_file.open() as rebase_plan_file:
             for line in rebase_plan_file:
                 self.handle_line(line, rebase_plan)
+        for item in rebase_plan:
+            slog.debug("Rebase plan: %s", item)
         with new_todo_file.open('w') as new_plan:
             new_plan.write('\n'.join(rebase_plan))
 
