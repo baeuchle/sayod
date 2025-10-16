@@ -13,6 +13,7 @@ class _Squasher:
         self.git = Git(Config.get().find('target', 'path', None), stderr=STDOUT)
         self.sc = Scope(kwargs.get('scope', ''), kwargs.get('keep_previous', ''))
         self.squashables = set()
+        self.length_corrected = False
 
     def handle(self):
         output = self.git.commandlines('rev-list',
@@ -32,6 +33,7 @@ class _Squasher:
         if self.sc.keep_previous and first_commit == initial_commit:
             slog.info("Repository is not old enough for this backup scope.")
             return
+        slog.debug("Found commits %s..%s", first_commit, initial_commit)
 
         # rebase onto one commit before first_commit, so that all the commits can be squashed into
         # that one.
@@ -52,6 +54,7 @@ class _Squasher:
             abort_output = self.git.command('rebase', '--abort')
             if self.git.returncode != 0:
                 slog.error("Cannot even abort rebase: %s", abort_output)
+        slog.debug("git output: %s", rb_continue_output)
 
     def push(self, do_it):
         if do_it == 'no':
@@ -68,6 +71,8 @@ class _Squasher:
         with orig_todo_file.open() as rebase_plan_file:
             for line in rebase_plan_file:
                 self.handle_line(line, rebase_plan)
+        for item in rebase_plan:
+            slog.debug("Rebase plan: %s", item)
         with new_todo_file.open('w') as new_plan:
             new_plan.write('\n'.join(rebase_plan))
 
@@ -81,6 +86,11 @@ class _Squasher:
         if stripped[0] == '#':
             return
         words = stripped.split()
+        hash_length = len(words[1])
+        if not self.length_corrected and hash_length < 40:
+            slog.info("Trimming commit ids to %d characters", hash_length)
+            self.squashables = {x[:hash_length] for x in self.squashables}
+            self.length_corrected = True
         if words[1] in self.squashables:
             words[0] = 'fixup'
             self.squashables.remove(words[1])
