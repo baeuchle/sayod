@@ -13,6 +13,7 @@ class _Squasher:
         self.git = Git(Config.get().find('target', 'path', None), stderr=STDOUT)
         self.sc = Scope(kwargs.get('scope', ''), kwargs.get('keep_previous', ''))
         self.squashables = set()
+        self.length_corrected = False
 
     def handle(self):
         output = self.git.commandlines('rev-list',
@@ -81,6 +82,11 @@ class _Squasher:
         if stripped[0] == '#':
             return
         words = stripped.split()
+        hash_length = len(words[1])
+        if not self.length_corrected and hash_length < 40:
+            slog.info("Trimming commit ids to %d characters", hash_length)
+            self.squashables = {x[:hash_length] for x in self.squashables}
+            self.length_corrected = True
         if words[1] in self.squashables:
             words[0] = 'fixup'
             self.squashables.remove(words[1])
