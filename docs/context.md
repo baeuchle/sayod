@@ -224,6 +224,34 @@ before = no
 unless = always
 ````
 
+### Gitless Provider
+
+**Triggered by:** ``action = gitless``
+
+Make sure you don't copy git working repositories. (Only makes sense for
+``copy`` main action).
+
+Valid configuration options are:
+
+* **substitute** (none|commit|patch|binary-patch) As release action,
+  GitlessProvider may add a representation of the current status of all
+  git repositories into the target path instead, depending on
+  **substitute** configuration. A file with the same name as the git
+  directory is created, containing the remote urls of the directory,
+  current commit (**commit**), current branch name (**branch**),
+  deviations from the current commit (**patch**) and possibly even
+  binary patches (**binary-patch**). ``binary-patch`` implies ``patch``
+  implies ``branch`` implies ``commit``.
+
+Often, git working repositories are mirrored at their main remote.
+Including their local representation in backups is thus superfluous.
+Gitless Provider creates a list of all git repositories inside
+``source::path`` and passes them to ``rsync``'s exclude-file list.
+
+**NB:** If only .git directories (the git 'internals') should be
+excluded, this can better be served by including .git in the exclude
+files.
+
 ## Testers
 
 Testers control if a [Provider](#providers) needs to run. If the tested
