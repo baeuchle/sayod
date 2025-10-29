@@ -65,7 +65,7 @@ class RemoteReader:
 
     @classmethod
     def add_subparser(cls, sp):
-        ap = sp.add_parser(cls.prog, help='read data from remote log')
+        ap = sp.add_parser(cls.prog, help='Reads contents from the remote log.')
         PlainLog.add_options(ap)
         return ap
 

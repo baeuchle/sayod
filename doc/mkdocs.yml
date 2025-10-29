@@ -1,0 +1,9 @@
+# documentation layout taken from https://github.com/mkdocs/mkdocs/discussions/3062
+site_name: Sayod
+docs_dir: src
+nav:
+  - Home: README.md
+  - sayod-backup: docs/sayod-backup.md
+  - Configuration: docs/configuration_file.md
+  - Context: docs/context.md
+theme: readthedocs

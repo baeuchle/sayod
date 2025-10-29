@@ -46,6 +46,7 @@ class SmallCommit:
         ap.add_argument('--add', '-a',
                         action='append',
                         required=False,
+                        help='Specify additional paths that should be added to the repository',
                         default=[]
                         )
         return ap
