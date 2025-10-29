@@ -338,6 +338,29 @@ class AdbFsProvider(MountProvider):
 all_providers['adbfs'] = AdbFsProvider
 
 
+class GitlessProvider(Provider):
+    def __init__(self, name, config):
+        super().__init__(name, config)
+        self.source = Config.get().find('source', 'path', '')
+
+    def acquire(self):
+        if not super().acquire():
+            return self.failure()
+        # find all git repositories inside self.source
+        # add those directories to exclude file.
+        return self.failure()
+
+    def release(self, is_exception):
+        if not super().release(is_exception):
+            return self.failure()
+        # create a replacement file for each git repository found in acquire() and put it into the
+        # target.
+        return self.success()
+
+
+all_providers['gitless'] = GitlessProvider
+
+
 def ProviderFactory(name):
     action = Config.get().find(name, 'action', '')
     section = Config.get().find_section(name)
