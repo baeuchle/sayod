@@ -23,6 +23,7 @@ from .config import Config
 from .tester import TesterFactory
 
 plog = logging.getLogger(__name__)
+all_providers = {}
 
 
 class ProvideError(Exception):
@@ -136,11 +137,9 @@ class SemaphoreProvider(Provider):
         return self.success()
 
 
-# TODO: SayodProvider is meant to execute one of "our" tasks, either
-# before (standard) or after (possible extension) the main task.
-# Success is needed so that next tasks can be done; for 'after'
-# flavour, we might specify if it happens if all else worked or if it
-# didn't.
+all_providers['semaphore'] = SemaphoreProvider
+
+
 class SayodProvider(Provider):
     def __init__(self, name, config):
         super().__init__(name, config)
@@ -159,7 +158,7 @@ class SayodProvider(Provider):
         try:
             result = self.command_klass.standalone()
             return self.success() if result else self.failure()
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             return self.failure(str(e))
 
     def acquire(self):
@@ -175,6 +174,9 @@ class SayodProvider(Provider):
         if self.run_before:
             return self.success()
         return self.run()
+
+
+all_providers['sayod'] = SayodProvider
 
 
 class DirectoryProvider(Provider):
@@ -197,6 +199,9 @@ class DirectoryProvider(Provider):
             return self.success()
         except OSError as oe:
             return self.failure(str(oe))
+
+
+all_providers['mkdir'] = DirectoryProvider
 
 
 class ManualProvider(Provider):
@@ -249,6 +254,9 @@ class ManualProvider(Provider):
         return self.failure("Timeout")
 
 
+all_providers['manual'] = ManualProvider
+
+
 class MountProvider(Provider):
     def __init__(self, name, config):
         super().__init__(name, config)
@@ -285,6 +293,9 @@ class SshFsProvider(MountProvider):
         return subprocess.run(command, text=True, capture_output=True, check=False)
 
 
+all_providers['sshfs'] = SshFsProvider
+
+
 class AdbProvider(Provider):
     def __init__(self, name, config):
         super().__init__(name, config)
@@ -299,6 +310,9 @@ class AdbProvider(Provider):
             return self.failure()
         command = ['adb', 'disconnect', self.device]
         return subprocess.run(command, text=True, capture_output=True, check=False)
+
+
+all_providers['adb'] = AdbProvider
 
 
 class AdbFsProvider(MountProvider):
@@ -321,22 +335,14 @@ class AdbFsProvider(MountProvider):
         return subprocess.run(command, text=True, capture_output=True, check=False, env=env_args)
 
 
+all_providers['adbfs'] = AdbFsProvider
+
+
 def ProviderFactory(name):
     action = Config.get().find(name, 'action', '')
     section = Config.get().find_section(name)
     plog.debug("Creating provider for %s", action)
-    if action == 'manual':
-        return ManualProvider(name, section)
-    if action == 'sshfs':
-        return SshFsProvider(name, section)
-    if action == 'adb':
-        return AdbProvider(name, section)
-    if action == 'adbfs':
-        return AdbFsProvider(name, section)
-    if action == 'mkdir':
-        return DirectoryProvider(name, section)
-    if action == 'sayod':
-        return SayodProvider(name, section)
-    if action == 'semaphore':
-        return SemaphoreProvider(name, section)
-    raise NotImplementedError(f"Provider for {action}")
+    cls = all_providers.get(action, None)
+    if cls is None:
+        raise NotImplementedError(f"Provider for {action}")
+    return cls(name, section)
