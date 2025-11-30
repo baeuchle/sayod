@@ -33,14 +33,15 @@ class _Database:
                 raise SystemExit(1)
             self.tblcmd = ['sqlite3', self.source, '.tables']
             self.dumpcmd = ['sqlite3', self.source, '.dump {}']
-        if self.type == 'mysql':
+        if self.type in ('mysql', 'mariadb'):
             self.env['MYSQL_PWD'] = kwargs.get('password', '')
             username = kwargs.get('username', '')
             hostname = kwargs.get('hostname', 'localhost')
             userarg = '--user='+username
             hostarg = '--host='+hostname
-            self.tblcmd = ['mysql', userarg, hostarg, self.source, '-BNe', 'show tables']
-            self.dumpcmd = ['mysqldump', userarg, hostarg, '--skip-extended-insert',
+            self.tblcmd = [self.type, userarg, hostarg, self.source, '-BNe', 'show tables']
+            self.dumpcmd = [{'mysql': 'mysqldump', 'mariadb': 'mariadb-dump'}.get(self.type),
+                            userarg, hostarg, '--skip-extended-insert',
                             '--column-statistics=0', '--skip-dump-date',
                             self.source, '{}']
         dblog.info("Table command: '%s'", "' '".join(self.tblcmd))
