@@ -340,22 +340,76 @@ all_providers['adbfs'] = AdbFsProvider
 
 class GitlessProvider(Provider):
     def __init__(self, name, config):
+        # pylint: disable=import-outside-toplevel
+        # pylint: disable=consider-using-with
         super().__init__(name, config)
-        self.source = Config.get().find('source', 'path', '')
+        from .copy import find_sources
+        from tempfile import NamedTemporaryFile
+        self.sources = find_sources()
+        self.target = Path(Config.get().find('target', 'path', ''))
+        self.substitute = config.get('substitute', 'binary-patch')
+        self.git_exclude_file = NamedTemporaryFile(mode='w', delete_on_close=False)
+        Config.get().find_section('rsync')['git_exclude_file'] = self.git_exclude_file.name
+        self.found_directories = [(Path(root_dir), gitdir.parent.relative_to(root_dir))
+                                  for root_dir in self.sources
+                                  for gitdir in Path(root_dir).glob('**/.git/')]
+        plog.info("Found %d git directories", len(self.found_directories))
+        for _, fd in self.found_directories:
+            plog.info("%s", str(fd))
 
     def acquire(self):
         if not super().acquire():
             return self.failure()
-        # find all git repositories inside self.source
-        # add those directories to exclude file.
-        return self.failure()
+        for _, fd in self.found_directories:
+            print(fd, file=self.git_exclude_file)
+        self.git_exclude_file.close()
+        return self.success()
 
     def release(self, is_exception):
         if not super().release(is_exception):
             return self.failure()
-        # create a replacement file for each git repository found in acquire() and put it into the
-        # target.
+        relatives = [x[1] for x in self.found_directories]
+        for root_dir, fd in self.found_directories:
+            # if there is any directory present which is one of the parents of fd,
+            # that means we have a git repository somewhere inside a git working directory. Not
+            # pretty, but it happens. We cannot crate both r and fd as files later, so we simply
+            # omit fd.
+            if any(r in fd.parents for r in relatives):
+                plog.warning("Not creating substitute file for %s, "
+                             "because it's within a different repository.", str(fd))
+                continue
+            self.store_replacement_file(root_dir / fd, self.target / fd)
         return self.success()
+
+    def store_replacement_file(self, original_dir, target):
+        if self.substitute == 'none':
+            return
+        plog.info("Storing replacement file for %s in %s", original_dir, target)
+        # pylint: disable=import-outside-toplevel
+        from .gitversion import Git
+        from .version import __version__
+        this_git = Git(cwd=original_dir)
+        with target.open('w', encoding='utf-8') as tf:
+            print("# This is a git replacement file. In the original data, a git", file=tf)
+            print("# repository was stored; use these information to recreate.", file=tf)
+            print("[sayod]", file=tf)
+            print("version =", __version__, file=tf)
+            print("substitute =", self.substitute, file=tf)
+            print("[current]", file=tf)
+            for remote in this_git.commandlines('remote'):
+                print(remote.strip(), "=", this_git.command('remote', 'get-url', remote.strip()),
+                      file=tf)
+            print("[current]", file=tf)
+            print("branch =", this_git.command('rev-parse', '--abbrev-ref', 'HEAD'), file=tf)
+            print("commit =", this_git.command('rev-parse', 'HEAD'), file=tf)
+            if self.substitute == 'commit':
+                return
+            print("="*100, file=tf)
+            git_args = ['diff', *['--binary' for _ in [None] if self.substitute != 'patch'], 'HEAD']
+            print(this_git.command(*git_args), file=tf)
+
+    def __del__(self):
+        del self.git_exclude_file
 
 
 all_providers['gitless'] = GitlessProvider

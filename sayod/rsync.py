@@ -57,6 +57,9 @@ class RSync:
         ef = self.config.get('exclude_file', False)
         if ef:
             self.options.append(f'--exclude-from={ef}')
+        gef = self.config.get('git_exclude_file', False)
+        if gef:
+            self.options.append(f'--exclude-from={gef}')
         if '--delete' in self.options:
             self.options.append("--filter=P .git")
 
