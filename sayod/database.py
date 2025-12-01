@@ -41,7 +41,8 @@ class _Database:
             hostarg = '--host='+hostname
             self.tblcmd = ['mysql', userarg, hostarg, self.source, '-BNe', 'show tables']
             self.dumpcmd = ['mysqldump', userarg, hostarg, '--skip-extended-insert',
-                            '--skip-dump-date', self.source, '{}']
+                            '--column-statistics=0', '--skip-dump-date',
+                            self.source, '{}']
         dblog.info("Table command: '%s'", "' '".join(self.tblcmd))
         dblog.info("Dump  command: '%s'", "' '".join(self.dumpcmd))
 
@@ -54,10 +55,11 @@ class _Database:
                                   stderr=subprocess.PIPE,
                                   env=self.env
                                   ) as dump_proc:
-                errors = dump_proc.stderr.read()
+                errors = dump_proc.stderr.read().decode('utf-8')
                 if dump_proc.wait() != 0:
                     Notify.get().fatal(f"Table {table_name} in {self.source} could not be dumped:\n"
                                        + oneline(errors))
+                    raise SystemExit(1)
         return target
 
     def dump_all(self):
