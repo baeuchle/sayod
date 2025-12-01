@@ -41,7 +41,8 @@ class _Database:
             hostarg = '--host='+hostname
             self.tblcmd = ['mysql', userarg, hostarg, self.source, '-BNe', 'show tables']
             self.dumpcmd = ['mysqldump', userarg, hostarg, '--skip-extended-insert',
-                            '--skip-dump-date', self.source, '{}']
+                            '--column-statistics=0', '--skip-dump-date',
+                            self.source, '{}']
         dblog.info("Table command: '%s'", "' '".join(self.tblcmd))
         dblog.info("Dump  command: '%s'", "' '".join(self.dumpcmd))
 
