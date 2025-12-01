@@ -35,6 +35,7 @@ class RSync:
         if sources is None:
             sources = [""]
         rsync_args = [*self.exe_args, *self.options, *sources, target]
+        rlog.debug("Executing '%s'", "' '".join(rsync_args))
         with subprocess.Popen(rsync_args, **self.popen_args) as proc:
             rlog.info("rsync is running...")
             (out, err) = proc.communicate()
