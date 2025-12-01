@@ -54,7 +54,7 @@ class _Database:
                                   stderr=subprocess.PIPE,
                                   env=self.env
                                   ) as dump_proc:
-                errors = dump_proc.stderr.read()
+                errors = dump_proc.stderr.read().decode('utf-8')
                 if dump_proc.wait() != 0:
                     Notify.get().fatal(f"Table {table_name} in {self.source} could not be dumped:\n"
                                        + oneline(errors))
