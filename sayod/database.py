@@ -58,6 +58,7 @@ class _Database:
                 if dump_proc.wait() != 0:
                     Notify.get().fatal(f"Table {table_name} in {self.source} could not be dumped:\n"
                                        + oneline(errors))
+                    raise SystemExit(1)
         return target
 
     def dump_all(self):
