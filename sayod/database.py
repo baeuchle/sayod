@@ -50,7 +50,7 @@ class _Database:
                                          text=True
                                          )
                 container_dict = json.loads(inspect.stdout)
-                for cont in container_dict:
+                for cont in container_dict.values():
                     if cont.get('Name', '') == docker_host:
                         hostname = cont.get('IPv6Address', '')
                         if not hostname:
