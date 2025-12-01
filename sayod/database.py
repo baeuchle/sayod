@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from pathlib import Path
@@ -37,6 +38,23 @@ class _Database:
             self.env['MYSQL_PWD'] = kwargs.get('password', '')
             username = kwargs.get('username', '')
             hostname = kwargs.get('hostname', 'localhost')
+            fields = hostname.split(':')
+            # we may specify 'docker:docker-network:docker-host'
+            if len(fields) == 3 and fields[0] == 'docker':
+                docker_network = fields[1]
+                docker_host = fields[2]
+                inspect = subprocess.run(['docker', 'network', 'inspect',
+                                         docker_network, '--format', '{{json .Containers}}'],
+                                         capture_output=True,
+                                         check=True,
+                                         text=True
+                                         )
+                container_dict = json.loads(inspect.stdout)
+                for cont in container_dict:
+                    if cont.get('Name', '') == docker_host:
+                        hostname = cont.get('IPv6Address', '')
+                        if not hostname:
+                            hostname = cont.get('IPv4Address', '').split('/')[0]
             userarg = '--user='+username
             hostarg = '--host='+hostname
             self.tblcmd = [self.type, userarg, hostarg, self.source, '-BNe', 'show tables']
