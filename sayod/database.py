@@ -60,7 +60,8 @@ class _Database:
             self.tblcmd = [self.type, userarg, hostarg, self.source, '-BNe', 'show tables']
             self.dumpcmd = [{'mysql': 'mysqldump', 'mariadb': 'mariadb-dump'}.get(self.type),
                             userarg, hostarg, '--skip-extended-insert',
-                            '--column-statistics=0', '--skip-dump-date',
+                            *['--column-statistics=0' for _ in [None] if self.type == 'mysql'],
+                            '--skip-dump-date',
                             self.source, '{}']
         dblog.info("Table command: '%s'", "' '".join(self.tblcmd))
         dblog.info("Dump  command: '%s'", "' '".join(self.dumpcmd))
